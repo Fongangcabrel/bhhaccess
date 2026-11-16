@@ -343,11 +343,30 @@ class LogOut(_Out):
 
 
 class PurgeIn(BaseModel):
-    before: datetime
+    """Journal lines to delete: every filter given must match. ``before`` is exclusive."""
+    date_from: AwareDatetime | None = None
+    date_to: AwareDatetime | None = None
+    before: AwareDatetime | None = None
+    employee_id: int | None = None
+    department_id: int | None = None
+    entity_id: int | None = None
+    zone_id: int | None = None
+    dry_run: bool = False
+
+
+class PhotoPurgeIn(BaseModel):
+    """Photos to remove: a selection of employees and / or a department, an entity, archived only."""
+    employee_ids: list[int] | None = Field(None, max_length=5000)
+    department_id: int | None = None
+    entity_id: int | None = None
+    archived_only: bool = False
+    dry_run: bool = False
 
 
 class PurgeOut(BaseModel):
     deleted: int
+    dry_run: bool = False
+    filters: list[str] = []
 
 
 class AuditOut(_Out):

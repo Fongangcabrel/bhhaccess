@@ -286,6 +286,31 @@ export interface LogEntry {
   method?: "QR" | "MANUEL" | "CONSOLE";
 }
 
+/** Journal lines to delete: every filter given must match. */
+export interface PurgeRequest {
+  date_from?: string;
+  date_to?: string;
+  employee_id?: number;
+  department_id?: number;
+  entity_id?: number;
+  zone_id?: number;
+  dry_run?: boolean;
+}
+
+export interface PhotoPurgeRequest {
+  employee_ids?: number[];
+  department_id?: number;
+  entity_id?: number;
+  archived_only?: boolean;
+  dry_run?: boolean;
+}
+
+export interface PurgeResult {
+  deleted: number;
+  dry_run: boolean;
+  filters: string[];
+}
+
 export interface LogFilters {
   employee_id?: number;
   department_id?: number;

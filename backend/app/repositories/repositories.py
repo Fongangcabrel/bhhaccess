@@ -74,6 +74,20 @@ class EmployeeRepository(BaseRepository[Employee]):
             )
         return list(self._session.scalars(stmt))
 
+    def with_photo(self, *, employee_ids: list[int] | None = None, department_id: int | None = None,
+                   entity_id: int | None = None, archived_only: bool = False) -> list[Employee]:
+        """Employees that have a photo, matching every filter given."""
+        stmt = select(Employee).where(Employee.photo_path.is_not(None)).order_by(Employee.id)
+        if employee_ids is not None:
+            stmt = stmt.where(Employee.id.in_(employee_ids))
+        if department_id is not None:
+            stmt = stmt.where(Employee.department_id == department_id)
+        if entity_id is not None:
+            stmt = stmt.where(Employee.entity_id == entity_id)
+        if archived_only:
+            stmt = stmt.where(Employee.status == EmployeeStatus.ARCHIVED)
+        return list(self._session.scalars(stmt))
+
 
 class BadgeRepository(BaseRepository[Badge]):
     model = Badge
@@ -250,28 +264,43 @@ class AccessLogRepository(BaseRepository[AccessLog]):
         )
         return self._session.scalars(stmt).first()
 
-    def search(
-        self,
+    def search(self, *, limit: int, offset: int, **filters) -> list[AccessLog]:
+        stmt = self._filtered(select(AccessLog), **filters)
+        stmt = stmt.order_by(AccessLog.occurred_at.desc()).limit(limit).offset(offset)
+        return list(self._session.scalars(stmt).unique())
+
+    def count_matching(self, **filters) -> int:
+        ids = self._filtered(select(AccessLog.id), **filters).subquery()
+        return self._session.scalar(select(func.count()).select_from(ids)) or 0
+
+    def delete_matching(self, **filters) -> int:
+        """Bulk delete of the lines matching the filters (data.purge only)."""
+        ids = self._filtered(select(AccessLog.id), **filters)
+        result = self._session.execute(delete(AccessLog).where(AccessLog.id.in_(ids)),
+                                       execution_options={"synchronize_session": False})
+        return result.rowcount or 0
+
+    @staticmethod
+    def _filtered(
+        stmt,
         *,
-        employee_id: int | None,
-        department_id: int | None,
-        entity_id: int | None,
-        zone_id: int | None,
+        employee_id: int | None = None,
+        department_id: int | None = None,
+        entity_id: int | None = None,
+        zone_id: int | None = None,
         unit_id: int | None = None,
         agent_id: int | None = None,
-        checkpoint_id: int | None,
-        verdict: Verdict | None,
-        direction: Direction | None,
-        date_from: datetime | None,
-        date_to: datetime | None,
-        limit: int,
-        offset: int,
+        checkpoint_id: int | None = None,
+        verdict: Verdict | None = None,
+        direction: Direction | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        before: datetime | None = None,
         flag: Flag | None = None,
         method: ScanMethod | None = None,
         log_ids: list[int] | None = None,
-    ) -> list[AccessLog]:
+    ):
         conditions = []
-        stmt = select(AccessLog)
         if log_ids is not None:
             conditions.append(AccessLog.id.in_(log_ids))
         if department_id is not None or entity_id is not None:
@@ -293,15 +322,13 @@ class AccessLogRepository(BaseRepository[AccessLog]):
             (direction, lambda v: AccessLog.direction == v),
             (date_from, lambda v: AccessLog.occurred_at >= v),
             (date_to, lambda v: AccessLog.occurred_at <= v),
+            (before, lambda v: AccessLog.occurred_at < v),
             (method, lambda v: AccessLog.method == v),
             # flags is a JSON array (jsonb on PostgreSQL): its text always holds the quoted value.
             (flag, lambda v: cast(AccessLog.flags, String).like(f'%"{v.value}"%')),
         ]
         conditions.extend(build(value) for value, build in filters if value is not None)
-        if conditions:
-            stmt = stmt.where(and_(*conditions))
-        stmt = stmt.order_by(AccessLog.occurred_at.desc()).limit(limit).offset(offset)
-        return list(self._session.scalars(stmt).unique())
+        return stmt.where(and_(*conditions)) if conditions else stmt
 
     def used_by(self, *, zone_id: int | None = None, checkpoint_id: int | None = None,
                 device_id: int | None = None, agent_id: int | None = None) -> bool:
@@ -326,9 +353,6 @@ class AccessLogRepository(BaseRepository[AccessLog]):
         )
         return {row[0]: row[1] for row in self._session.execute(stmt)}  # noqa: C416
 
-    def purge_before(self, cutoff: datetime) -> int:
-        result = self._session.execute(delete(AccessLog).where(AccessLog.occurred_at < cutoff))
-        return result.rowcount or 0
 
 
 class AuditRepository(BaseRepository[AuditEntry]):

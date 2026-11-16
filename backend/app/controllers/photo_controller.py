@@ -4,8 +4,9 @@ from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFi
 from app.controllers.deps import get_photo_service, get_photo_signer, get_session, require
 from app.core.exceptions import DomainError, NotFoundError
 from app.domain.permissions import Permission
-from app.models import Employee, User
-from app.schemas.dto import EmployeeOut
+from app.models import Department, Employee, Entity, User
+from app.repositories.repositories import EmployeeRepository
+from app.schemas.dto import EmployeeOut, PhotoPurgeIn, PurgeOut
 from app.services.photo_service import PhotoService, PhotoUrlSigner
 
 router = APIRouter(tags=["photos"])
@@ -45,3 +46,31 @@ def read_photo(employee_id: int, exp: int = Query(...), sig: str = Query(..., ma
         raise NotFoundError("Photo introuvable ou lien expiré")
     return Response(content=service.read(employee), media_type="image/jpeg",
                     headers={"Cache-Control": "private, max-age=60", "X-Content-Type-Options": "nosniff"})
+
+
+@router.post("/photos/purge", response_model=PurgeOut)
+def purge_photos(body: PhotoPurgeIn, actor: User = Depends(require(Permission.DATA_PURGE)),
+                 session=Depends(get_session), service: PhotoService = Depends(get_photo_service)):
+    """Bulk removal of photos (FR-97/98). ``dry_run`` gives the number of photos first."""
+    nothing = body.employee_ids is None and body.department_id is None and body.entity_id is None
+    if nothing and not body.archived_only:
+        raise DomainError("Choisissez au moins un filtre (sélection, département, entité ou archivés)")
+    described = []
+    if body.employee_ids is not None:
+        described.append(f"{len(body.employee_ids)} employé(s) sélectionné(s)")
+    for model, value, label, missing in (
+        (Entity, body.entity_id, "Entité", "Entité introuvable"),
+        (Department, body.department_id, "Département", "Département introuvable"),
+    ):
+        if value is not None:
+            item = session.get(model, value)
+            if item is None:
+                raise NotFoundError(missing)
+            described.append(f"{label} : {item.name}")
+    if body.archived_only:
+        described.append("Employés archivés seulement")
+    employees = EmployeeRepository(session).with_photo(
+        employee_ids=body.employee_ids, department_id=body.department_id, entity_id=body.entity_id,
+        archived_only=body.archived_only)
+    deleted = service.purge(actor.id, employees, described, body.dry_run)
+    return PurgeOut(deleted=deleted, dry_run=body.dry_run, filters=described)

@@ -131,6 +131,10 @@ ROUTES: dict[str, tuple[str, str, str]] = {
     "POST /api/employees/{employee_id}/photo": ("Employés", "Ajouter ou remplacer la photo",
         "JPEG ou PNG, taille limitée. Montrée à l'agent au scan pour comparer avec le visage."),
     "DELETE /api/employees/{employee_id}/photo": ("Employés", "Retirer la photo", ""),
+    "POST /api/photos/purge": ("Employés", "Supprimer des photos en lot",
+        "Retire les photos des employés qui correspondent aux filtres : sélection (`employee_ids`), "
+        "département, entité, archivés seulement. Au moins un filtre. `dry_run: true` donne d'abord "
+        "le nombre de photos ; la suppression est tracée dans l'audit."),
     "GET /api/employees/{employee_id}/badges": ("Employés", "Badges d'un employé",
         "Historique complet, avec motif et auteur des révocations."),
     "GET /api/employees/{employee_id}/authorizations": ("Employés", "Autorisations d'un employé (liste brute)",
@@ -256,7 +260,10 @@ ROUTES: dict[str, tuple[str, str, str]] = {
     "GET /api/logs": ("Journal", "Consulter le journal",
         "Plus récent d'abord. Filtres : période, employé, zone, poste, décision, indicateur, méthode."),
     "POST /api/logs/purge": ("Journal", "Purger le journal",
-        "Supprime les lignes antérieures à une date ; l'opération est tracée dans l'audit."),
+        "Supprime les passages qui correspondent à **tous** les filtres donnés : période (`date_from`, "
+        "`date_to`, ou `before` exclusif), employé, département, entité, zone. Au moins un filtre. "
+        "`dry_run: true` renvoie seulement le nombre de lignes (aperçu) ; la vraie suppression est "
+        "tracée dans l'audit (auteur, filtres, nombre de lignes)."),
     "GET /api/logs/export.csv": ("Journal", "Exporter le journal en CSV",
         "Ancien format ; préférer *Exports*."),
     # --- Alertes

@@ -24,6 +24,7 @@ const CATEGORIES: [string, string][] = [
   ["role", tx("Rôles et droits")],
   ["export", tx("Exports")],
   ["logs", tx("Purge du journal")],
+  ["photos", tx("Purge des photos")],
 ];
 
 /** Who did what, when, from where, and what changed (SRS FR-71). Read-only by design. */

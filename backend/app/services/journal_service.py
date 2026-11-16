@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app.core.exceptions import DomainError
 from app.domain.enums import Direction, Flag, ScanMethod, Verdict
 from app.models import AccessLog
 from app.repositories.repositories import AccessLogRepository
@@ -27,8 +28,15 @@ class JournalService:
             log_ids=log_ids,
         )
 
-    def purge_before(self, actor_id: int, cutoff: datetime) -> int:
-        """Bulk delete (data.purge). The purge itself is audited and the audit is permanent."""
-        deleted = self._logs.purge_before(cutoff)
-        self._audit.record(actor_id, "logs.purge", None, before=cutoff.isoformat(), deleted=deleted)
+    def purge(self, actor_id: int, filters: dict, described: list[str], dry_run: bool) -> int:
+        """Bulk delete (data.purge, FR-97/98). ``dry_run`` only counts the lines (the preview).
+        The purge itself is audited (author, filters, number of lines) and the audit is permanent."""
+        filters = {k: v for k, v in filters.items() if v is not None}
+        if not filters:
+            raise DomainError("Choisissez au moins un filtre (période, employé, département, entité ou zone)")
+        if dry_run:
+            return self._logs.count_matching(**filters)
+        deleted = self._logs.delete_matching(**filters)
+        self._audit.record(actor_id, "logs.purge", "; ".join(described) or None, deleted=deleted,
+                           filters={k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in filters.items()})
         return deleted

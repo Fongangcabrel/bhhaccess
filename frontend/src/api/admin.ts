@@ -21,6 +21,9 @@ import type {
   EmployeeStatus,
   Entity,
   BulkRequest,
+  PhotoPurgeRequest,
+  PurgeRequest,
+  PurgeResult,
   BulkResult,
   ImportCheck,
   ImportReport,
@@ -214,7 +217,9 @@ export class AdminApi {
   }
   /** The badge to print: QR (logo) + matricule at real size, with cut marks. */
   badgePdf(badgeId: number) { return this.c.blob(`/badges/${badgeId}/print.pdf`); }
-  purge(before: string) { return this.c.post<{ deleted: number }>("/logs/purge", { before }); }
+  /** dry_run: only the number of lines (preview); otherwise deletes them (audited). */
+  purge(body: PurgeRequest) { return this.c.post<PurgeResult>("/logs/purge", body); }
+  purgePhotos(body: PhotoPurgeRequest) { return this.c.post<PurgeResult>("/photos/purge", body); }
   /** Newest first. */
   audit(filters: AuditFilters = {}, offset = 0, limit = 100) {
     return this.c.get<AuditRow[]>(`/audit${query({ ...filters, limit, offset })}`);

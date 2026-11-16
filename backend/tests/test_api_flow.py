@@ -89,7 +89,7 @@ def test_purge_is_audited_and_rh_may_purge(client, agent, admin, make_user, cloc
     rh = make_user("rh1", "rh")
     body = {"before": clock.now().isoformat()}
     assert client.post("/api/logs/purge", headers=agent, json=body).status_code == 403
-    assert client.post("/api/logs/purge", headers=rh, json=body).json() == {"deleted": 1}
+    assert client.post("/api/logs/purge", headers=rh, json=body).json()["deleted"] == 1
     assert any(a["action"] == "logs.purge" for a in client.get("/api/audit", headers=admin).json())
 
 

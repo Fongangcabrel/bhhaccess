@@ -132,6 +132,10 @@ EN: dict[str, str] = {
     "Choisissez des employés, un département ou une entité": "Choose employees, a department or an entity",
     "Choisissez l'entité ou le département à appliquer": "Choose the entity or the department to apply",
     "Choisissez au moins une zone": "Choose at least one zone",
+    "Choisissez au moins un filtre (période, employé, département, entité ou zone)":
+        "Choose at least one filter (period, employee, department, entity or zone)",
+    "Choisissez au moins un filtre (sélection, département, entité ou archivés)":
+        "Choose at least one filter (selection, department, entity or archived)",
     "Trop de lignes": "Too many rows",
     # --- import: reasons for a refused row ------------------------------------------------
     "matricule manquant": "employee number missing",

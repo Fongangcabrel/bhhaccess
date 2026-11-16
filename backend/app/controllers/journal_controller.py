@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
-from app.controllers.deps import get_audit, get_journal_service, require
+from app.controllers.deps import get_audit, get_journal_service, get_session, require
 from app.domain.enums import Direction, Flag, ScanMethod, Verdict
 from app.domain.permissions import Permission
 from app.models import User
@@ -34,9 +34,17 @@ def search_logs(
 
 
 @router.post("/logs/purge", response_model=PurgeOut)
-def purge_logs(body: PurgeIn, actor: User = Depends(require(Permission.DATA_PURGE)),
-               service: JournalService = Depends(get_journal_service)):
-    return PurgeOut(deleted=service.purge_before(actor.id, body.before))
+def purge_logs(body: PurgeIn, request: Request, actor: User = Depends(require(Permission.DATA_PURGE)),
+               session=Depends(get_session), service: JournalService = Depends(get_journal_service)):
+    """``dry_run`` gives the number of lines first (preview), then the real call deletes them."""
+    from app.controllers.export_controller import _exporter, describe_journal_filters  # avoids an import cycle
+
+    filters = body.model_dump(exclude={"dry_run"})
+    described = describe_journal_filters(session, _exporter(request), filters)
+    if body.before is not None:
+        described.append("Avant le " + _exporter(request).local(body.before).strftime("%d/%m/%Y"))
+    deleted = service.purge(actor.id, filters, described, body.dry_run)
+    return PurgeOut(deleted=deleted, dry_run=body.dry_run, filters=described)
 
 
 def audit_filters(

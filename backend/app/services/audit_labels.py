@@ -22,6 +22,7 @@ CATEGORY_LABEL = {
     "entity": "Entités",
     "department": "Départements",
     "logs": "Purge du journal",
+    "photos": "Purge des photos",
 }
 
 ACTION_LABEL = {
@@ -89,6 +90,7 @@ ACTION_LABEL = {
     "export.pdf": "Export PDF",
     "export.csv": "Export CSV",
     "logs.purge": "Purge du journal des passages",
+    "photos.purge": "Photos supprimées en lot",
 }
 
 FIELD_LABEL = {

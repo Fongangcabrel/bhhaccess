@@ -19,7 +19,7 @@ Unité ──< Zone ──< Poste de contrôle (entrée ou sortie) ──< Affec
 - **Agents** (facultatif) : renseignés par le super user et placés à un poste ; l'historique des affectations est conservé. Chaque passage du journal enregistre l'unité, la zone, le poste, le téléphone et l'**agent au poste à ce moment** (nom figé, il survit à un renommage). Filtres et export CSV par unité et par agent.
 
 ```bash
-cd frontend && npm install && npm test && npm run build   # 95 tests
+cd frontend && npm install && npm test && npm run build   # 98 tests
 npm run dev                                               # http://localhost:5173, proxy /api -> localhost:8001
 ```
 
@@ -65,7 +65,7 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest                                          # 204 tests (SQLite en mémoire)
+pytest                                          # 209 tests (SQLite en mémoire)
 # même suite sur un vrai PostgreSQL (schéma via Alembic) :
 BHH_TEST_DATABASE_URL=postgresql+psycopg2://user@host/db pytest   # + la course concurrente
 alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0015)
@@ -95,7 +95,7 @@ unités, zones, postes : modification, désactivation, suppression protégée ·
 « Contrôle des entrées » par zone (Libre / Signalé, avec avertissement de l'agent en option / Sortie obligatoire), heure de la dernière entrée sur « Déjà entré », déblocage tracé (drapeau « Débloqué » sur le scan suivant) ·
 accès temporaires (dates) et plages horaires par zone, vérifiés à l'heure de Douala (plages de nuit acceptées, sortie jamais bloquée) · appairage de téléphones sans connexion, chacun limité à son périmètre (unités, zones ou postes cochés ; scan refusé ailleurs) · agents par poste, porte unique entrée + sortie, relève avec historique ·
 scan caméra (décodeur natif ou ZXing WebAssembly) et saisie manuelle, verdict avec photo ; l'écran du poste reste masqué jusqu'au clic sur « Démarrer le contrôle », qui active aussi la voix si elle est réglée sur ce téléphone ·
-tableau de bord de supervision (présents / sortis par unité et zone, postes, refus) · journal filtrable + purge ·
+tableau de bord de supervision (présents / sortis par unité et zone, postes, refus) · journal filtrable + purge filtrée (période, employé, département, entité, zone) avec aperçu et confirmation, photos supprimables en lot ·
 alertes d'usage suspect (même badge à deux postes trop vite selon le temps de trajet minimum, badge révoqué ou d'un employé archivé présenté, hors horaires, rafales, refus répétés), écran Rapport ▸ Alertes avec prise en compte individuelle ou groupée et révocation du badge · réglage des temps de trajet dans Paramétrage ▸ Réglage de distance · annonce vocale au poste (« Entrée autorisée, Jean Mbarga », refus, alerte), activée ou coupée par téléphone, et des nouvelles alertes au back-office · application en français ou en anglais (sélecteur FR | EN sur le téléphone, à la connexion et dans Général ▸ Identifiant ; textes du back-office dans frontend/src/i18n/admin.ts, messages du serveur dans backend/app/core/i18n.py, des tests signalent tout texte sans traduction ; journal, audit et exports restent en français) · sélection de passages dans le Journal pour exporter uniquement les lignes cochées en Excel ou PDF · exports Excel et PDF (journal, audit, employés) audités · écran d'audit (auteur, adresse IP, avant → après, filtres) jamais modifiable.
 
 Derrière Nginx, mettre `BHH_TRUST_PROXY_HEADERS=true` pour que l'audit enregistre l'adresse réelle du poste (en-tête `X-Forwarded-For`) ; laisser `false` si l'API est exposée directement.

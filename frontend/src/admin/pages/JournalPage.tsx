@@ -4,8 +4,9 @@ import type { Direction, Flag, LogEntry, LogFilters, Verdict } from "../../api/t
 import { useAuth } from "../../auth/AuthContext";
 import { describeFlag, describeVerdict, ALL_FLAGS, ALL_VERDICTS } from "../../lib/verdicts";
 import { downloadBlob, endOfDayIso, formatDateTime, openPdf, stamp, startOfDayIso } from "../../lib/format";
-import { Empty, ErrorNote, Modal, PageHeader, VerdictPill } from "../components/ui";
+import { Empty, ErrorNote, PageHeader, VerdictPill } from "../components/ui";
 import { useAction, useAsync } from "../useAsync";
+import { PurgeDialog } from "../Purge";
 
 const PAGE = 100;
 
@@ -214,39 +215,10 @@ export function JournalPage() {
       )}
 
       {purging && (
-        <PurgeDialog onClose={() => setPurging(false)} onDone={() => { setPurging(false); void logs.reload(); }} />
+        <PurgeDialog start={{ from: form.from, to: form.to, employee_id: form.employee_id, department_id: form.department_id,
+          entity_id: form.entity_id, zone_id: form.zone_id }}
+          onClose={() => setPurging(false)} onDone={() => { setPurging(false); void logs.reload(); }} />
       )}
     </>
-  );
-}
-
-function PurgeDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const { admin } = useAuth();
-  const [date, setDate] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<number | null>(null);
-  const act = useAction(setError);
-
-  return (
-    <Modal title={tx("Supprimer des passages en lot")} onClose={result === null ? onClose : onDone}>
-      {result === null ? (
-        <div className="form">
-          <p>{tx("Supprime")}{" "}<strong>{tx("définitivement")}</strong>{" "}{tx("tous les passages enregistrés")}{" "}<strong>{tx("avant")}</strong>{" "}{tx("la date choisie. Cette suppression sera tracée dans l'audit, qui, lui, n'est jamais supprimable.")}</p>
-          <label className="field"><span>{tx("Supprimer avant le")}</span><input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></label>
-          <ErrorNote message={error} />
-          <footer>
-            <button onClick={onClose}>{tx("Annuler")}</button>
-            <button className="danger" disabled={!date}
-              onClick={() => window.confirm(tx("Suppression définitive. Continuer ?")) && act(async () => setResult((await admin.purge(startOfDayIso(date))).deleted))}>{tx("Supprimer")}
-            </button>
-          </footer>
-        </div>
-      ) : (
-        <div className="form">
-          <p><strong>{result}</strong>{" "}{tx("passage(s) supprimé(s).")}</p>
-          <footer><button className="primary" onClick={onDone}>{tx("Fermer")}</button></footer>
-        </div>
-      )}
-    </Modal>
   );
 }

@@ -113,6 +113,20 @@ class PhotoService:
         self._audit.record(actor_id, "employee.photo.delete", employee.matricule)
         return employee
 
+    def purge(self, actor_id: int, employees: list[Employee], described: list[str], dry_run: bool) -> int:
+        """Bulk removal of photos (data.purge, FR-97/98): one audit line with filters and count."""
+        if dry_run:
+            return len(employees)
+        names = []
+        for employee in employees:
+            names.append(employee.photo_path)
+            employee.photo_path = None
+        self._employees.flush()
+        for name in names:
+            self._delete_file(name)  # files go once the database no longer points at them
+        self._audit.record(actor_id, "photos.purge", "; ".join(described) or None, deleted=len(names))
+        return len(names)
+
     def read(self, employee: Employee) -> bytes:
         path = self._file(employee.photo_path)
         if path is None or not path.is_file():
