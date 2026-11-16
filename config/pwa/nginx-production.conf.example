@@ -1,0 +1,53 @@
+# BHH Access - internal production server (example).
+# Serves the compiled PWA (frontend/dist) and forwards /api to the API container (port 8000).
+# Replace: server_name, certificate paths, dist path. The certificate must come from an authority
+# the phones trust (company authority deployed on the phones).
+
+server {
+    listen 80;
+    server_name acces.bhh.local;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name acces.bhh.local;
+
+    ssl_certificate     /etc/nginx/certs/acces.bhh.local.crt;   # full chain
+    ssl_certificate_key /etc/nginx/certs/acces.bhh.local.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # Security headers (the camera is used by the agent app on this origin only).
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+    add_header Permissions-Policy "camera=(self), microphone=(), geolocation=()" always;
+
+    client_max_body_size 5m;   # photos and Excel imports
+
+    # --- API ---------------------------------------------------------------------------
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;   # real IP in the audit (BHH_TRUST_PROXY_HEADERS=true)
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 60s;
+    }
+
+    # --- PWA ---------------------------------------------------------------------------
+    root /srv/bhhaccess/dist;
+
+    # Never cache the service worker and the manifest: updates reach the phones at once.
+    location = /sw.js                  { add_header Cache-Control "no-cache" always; try_files $uri =404; }
+    location = /manifest.webmanifest   { add_header Cache-Control "no-cache" always; default_type application/manifest+json; try_files $uri =404; }
+    location = /index.html             { add_header Cache-Control "no-cache" always; }
+
+    # Hashed assets: cached for a year.
+    location /assets/ { add_header Cache-Control "public, max-age=31536000, immutable" always; try_files $uri =404; }
+
+    location ~* \.wasm$ { default_type application/wasm; try_files $uri =404; }
+
+    # Client-side routes (/admin/..., /pair/<code>) all load the app.
+    location / { try_files $uri /index.html; }
+}
