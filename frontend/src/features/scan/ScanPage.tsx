@@ -1,10 +1,11 @@
 import { LangSwitch, useT } from "../../i18n";
 import { useEffect, useState } from "react";
 import type { Scanner } from "../../api/endpoints";
-import type { Checkpoint } from "../../api/types";
+import type { Checkpoint, RecentScan } from "../../api/types";
 import { ManualEntry } from "./ManualEntry";
 import { QrScanner } from "./QrScanner";
 import { ResultOverlay } from "./ResultOverlay";
+import { ScanHistory } from "./ScanHistory";
 import { useScanner } from "./useScanner";
 import { speak } from "../../lib/voice";
 
@@ -17,6 +18,8 @@ interface Props {
   onChangeCheckpoint: () => void;
   /** Say the result aloud (set per phone in the back-office). */
   voice?: boolean;
+  /** The phone's last scans; the « Historique » button shows only when given. */
+  history?: () => Promise<RecentScan[]>;
 }
 
 function useOnline(): boolean {
@@ -33,12 +36,13 @@ function useOnline(): boolean {
   return online;
 }
 
-export function ScanPage({ api, checkpoint, otherSide, onSwitchSide, onChangeCheckpoint, voice = false }: Props) {
+export function ScanPage({ api, checkpoint, otherSide, onSwitchSide, onChangeCheckpoint, voice = false, history }: Props) {
   const { result, error, pending, scanToken, scanMatricule, dismiss } = useScanner(api, checkpoint.id, voice);
   const [controlStarted, setControlStarted] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const online = useOnline();
   const { lang, t } = useT();
-  const scanning = online && !pending && !result && !error;
+  const scanning = online && !pending && !result && !error && !historyOpen; // camera paused while reading
 
   const startControl = () => {
     if (voice) speak(t("scan.controlStarted"), lang);
@@ -70,6 +74,7 @@ export function ScanPage({ api, checkpoint, otherSide, onSwitchSide, onChangeChe
         </div>
         <div className="bar-actions">
           <LangSwitch />
+          {history && <button className="link" onClick={() => setHistoryOpen(true)}>{t("history.button")}</button>}
           <button className="link" onClick={onChangeCheckpoint}>{t("scan.change")}</button>
         </div>
       </header>
@@ -103,6 +108,7 @@ export function ScanPage({ api, checkpoint, otherSide, onSwitchSide, onChangeChe
       <ManualEntry disabled={!online || pending} onSubmit={scanMatricule} />
 
       {result && <ResultOverlay result={result} onDismiss={dismiss} />}
+      {historyOpen && history && <ScanHistory load={history} onClose={() => setHistoryOpen(false)} />}
     </main>
   );
 }

@@ -67,6 +67,7 @@ ACTION_LABEL = {
     "device.pair": "Téléphone appairé",
     "device.scope": "Périmètre du téléphone modifié",
     "device.voice": "Voix du téléphone réglée",
+    "device.post": "Poste choisi sur le téléphone",
     "presence.unblock": "Présence débloquée",
     "user.create": "Utilisateur créé",
     "user.activate": "Utilisateur réactivé",

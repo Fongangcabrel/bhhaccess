@@ -21,6 +21,8 @@ EN: dict[str, str] = {
     "Authentification requise": "Authentication required",
     # --- back-office --------------------------------------------------------------------
     "Agent introuvable": "Agent not found",
+    "La date de début doit précéder la date de fin": "The start date must come before the end date",
+    "Période trop longue : 366 jours maximum pour les tendances": "Period too long: 366 days at most for trends",
     "Alerte déjà prise en compte": "Alert already handled",
     "Alerte introuvable": "Alert not found",
     "Appareil introuvable": "Device not found",

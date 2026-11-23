@@ -32,6 +32,7 @@ from app.services.import_service import EmployeeImportService
 from app.services.journal_service import JournalService
 from app.services.monitoring_service import MonitoringService
 from app.services.org_service import OrgService
+from app.services.period_report_service import PeriodReportService
 from app.services.permission_service import PermissionService
 from app.services.photo_service import PhotoService, PhotoUrlSigner
 from app.services.presence_service import PresenceService
@@ -152,6 +153,13 @@ def get_import_service(session: Session = Depends(get_session),
                        audit: AuditService = Depends(get_audit)) -> EmployeeImportService:
     return EmployeeImportService(r.EmployeeRepository(session), r.EntityRepository(session),
                                  r.DepartmentRepository(session), audit)
+
+
+def get_period_report_service(request: Request, session: Session = Depends(get_session),
+                              clock: Clock = Depends(get_clock)) -> PeriodReportService:
+    return PeriodReportService(r.AccessLogRepository(session), r.PresenceRepository(session),
+                               r.EmployeeRepository(session), r.ZoneRepository(session), clock,
+                               request.app.state.timezone)
 
 
 def get_report_service(request: Request, session: Session = Depends(get_session),

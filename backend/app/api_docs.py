@@ -70,10 +70,13 @@ TAGS: list[dict[str, str]] = [
     {"name": "Utilisateurs", "description": "Comptes du back-office, rôles et droits individuels."},
     {"name": "Scan", "description": "Scan par un agent connecté et déblocage depuis la console."},
     {"name": "Journal", "description": "Passages enregistrés (consultation, purge)."},
+    {"name": "Rapports",
+     "description": "Mouvements par employé et par zone, présence par zone, tendances des refus, "
+                    "filtrables par période, département, entité, unité et zone."},
     {"name": "Alertes",
      "description": "Usages suspects de badge et temps de trajet minimum entre postes."},
     {"name": "Audit", "description": "Qui a fait quoi, quand, depuis quelle adresse. Jamais modifiable."},
-    {"name": "Exports", "description": "Excel et PDF du journal, de l'audit et des employés."},
+    {"name": "Exports", "description": "Excel et PDF du journal, des rapports, de l'audit et des employés."},
     {"name": "Exploitation", "description": "Surveillance du service."},
 ]
 
@@ -215,6 +218,14 @@ ROUTES: dict[str, tuple[str, str, str]] = {
         "Son nom et si la voix est activée. En-tête `X-Device-Token`."),
     "GET /api/device/checkpoints": ("Téléphones", "Postes du téléphone",
         "Seulement les postes actifs de son périmètre. En-tête `X-Device-Token`."),
+    "POST /api/device/post": ("Téléphones", "Prendre un poste (téléphone)",
+        "À appeler quand l'agent choisit son poste. Un changement est inscrit dans l'audit "
+        "(*Poste choisi sur le téléphone*, avant → après) ; le même poste ne crée pas de ligne. "
+        "Un scan à un autre poste vaut aussi changement de poste."),
+    "GET /api/device/scans": ("Téléphones", "Historique du téléphone",
+        "Derniers scans de ce téléphone (12 dernières heures, `limit` 30 par défaut, 50 au plus), "
+        "plus récent d'abord, en lecture seule : heure, poste, personne, résultat. "
+        "Un « QR non reconnu » reste sans identité."),
     "POST /api/device/scan": ("Téléphones", "Scanner un QR (téléphone)",
         "En-tête `X-Device-Token`. Poste hors périmètre : `403`. Renvoie la décision, la photo, "
         "l'avertissement éventuel, la dernière entrée et l'alerte déclenchée (`alert`), à annoncer."),
@@ -267,6 +278,18 @@ ROUTES: dict[str, tuple[str, str, str]] = {
     "GET /api/logs/export.csv": ("Journal", "Exporter le journal en CSV",
         "Ancien format ; préférer *Exports*."),
     # --- Alertes
+    # --- Rapports
+    "GET /api/reports/movements": ("Rapports", "Mouvements par employé et par zone",
+        "Entrées, sorties, refus et déblocages par (employé, zone), avec premier et dernier passage (FR-73). "
+        "Seuls les vrais passages comptent comme entrées / sorties ; un déblocage depuis la console est compté à part. "
+        "Filtres : `date_from`, `date_to`, `employee_id`, `department_id`, `entity_id`, `unit_id`, `zone_id`."),
+    "GET /api/reports/presence": ("Rapports", "Présence par zone",
+        "Par zone : personnes à l'intérieur maintenant (`null` pour une zone « Libre », qui ne suit pas la présence), "
+        "personnes distinctes entrées, entrées, sorties et refus sur la période (FR-77). Mêmes filtres."),
+    "GET /api/reports/refusals": ("Rapports", "Tendances des refus",
+        "Refus jour par jour (heure de Douala, jours vides compris), par motif, par zone et les 10 personnes "
+        "les plus refusées ; total de la période précédente de même durée pour comparer (FR-77). "
+        "30 derniers jours par défaut, 366 jours au plus. Mêmes filtres."),
     "GET /api/alerts": ("Alertes", "Lister les alertes",
         "Plus récente d'abord. Filtres `status` (`NOUVELLE`, `PRISE_EN_COMPTE`) et `type`."),
     "GET /api/alerts/count": ("Alertes", "Nombre d'alertes nouvelles", "Compteur du menu."),
@@ -290,6 +313,12 @@ ROUTES: dict[str, tuple[str, str, str]] = {
     "GET /api/exports/audit.{fmt}": ("Exports", "Exporter l'audit",
         "`fmt` : `xlsx` ou `pdf`. Mêmes filtres que l'écran Audit."),
     "GET /api/exports/employees.{fmt}": ("Exports", "Exporter les employés", "`fmt` : `xlsx` ou `pdf`."),
+    "GET /api/exports/movements.{fmt}": ("Exports", "Exporter les mouvements par employé et par zone",
+        "`fmt` : `xlsx` ou `pdf`. Mêmes filtres que l'écran Rapports ▸ Mouvements."),
+    "GET /api/exports/presence.{fmt}": ("Exports", "Exporter la présence par zone",
+        "`fmt` : `xlsx` ou `pdf`. Mêmes filtres que l'écran Rapports ▸ Présence par zone."),
+    "GET /api/exports/refusals.{fmt}": ("Exports", "Exporter les tendances des refus",
+        "`fmt` : `xlsx` ou `pdf`. Un jour par ligne, une colonne par motif de refus."),
     # --- Exploitation
     "GET /health": ("Exploitation", "État du service", "Répond `ok` quand l'API tourne."),
 }

@@ -6,7 +6,9 @@ from datetime import timedelta
 from app.core.clock import Clock
 from app.core.exceptions import AuthenticationError, ConflictError, DomainError, ForbiddenError, NotFoundError
 from app.core.rate_limit import FailureLimiter
+from app.domain.enums import Verdict
 from app.models import Checkpoint, Device, DeviceScope
+from app.models.device import post_label
 from app.repositories.repositories import (
     AccessLogRepository,
     CheckpointRepository,
@@ -19,6 +21,7 @@ from app.services.audit_service import AuditService
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O/1/I: easy to read aloud
 CODE_LENGTH = 8
 CODE_VALIDITY = timedelta(minutes=15)
+HISTORY_WINDOW = timedelta(hours=12)  # "my last scans": the current shift, not the whole journal
 
 
 def _hash(value: str) -> str:
@@ -67,11 +70,44 @@ class DeviceService:
     def allowed_checkpoints(self, device: Device, checkpoints: list[Checkpoint]) -> list[Checkpoint]:
         return [c for c in checkpoints if device.covers(c)]
 
-    def require_covers(self, device: Device, checkpoint_id: int) -> None:
-        """A phone only scans inside its perimeter, even if someone forges the request."""
-        checkpoint = self._checkpoints.get(checkpoint_id) if self._checkpoints else None
-        if checkpoint is not None and not device.covers(checkpoint):
+
+    # --- the post held by the phone (FR-33) and its last scans (FR-68) ---------------
+    def take_post(self, device: Device, checkpoint_id: int) -> Device:
+        """The agent chose (or scans at) a post. A change is written in the audit, never twice."""
+        checkpoint = self._checkpoints.get(checkpoint_id)
+        if checkpoint is None:
+            raise NotFoundError("Point de contrôle introuvable")
+        if not device.covers(checkpoint):
             raise ForbiddenError("Ce poste n'est pas dans le périmètre de ce téléphone")
+        if not checkpoint.usable:
+            raise ConflictError("Ce poste est désactivé : choisissez un autre poste")
+        if device.checkpoint is not None and device.checkpoint.id == checkpoint.id:
+            return device
+        before = device.current_post or "aucun"
+        device.checkpoint = checkpoint
+        device.checkpoint_since = self._clock.now()
+        self._devices.flush()
+        self._audit.record(None, "device.post", device.name, before={"checkpoint": before},
+                           after={"checkpoint": post_label(checkpoint)})
+        return device
+
+    def recent_scans(self, device: Device, limit: int) -> list[dict]:
+        """This phone's scans of the last hours, newest first. Read only.
+
+        A « QR non reconnu » stays anonymous here too, whatever the journal knows behind it.
+        """
+        since = self._clock.now() - HISTORY_WINDOW
+        out = []
+        for line in self._logs.recent_for_device(device.id, since, limit):
+            hidden = line.verdict == Verdict.DENIED_INVALID
+            out.append({
+                "id": line.id, "occurred_at": line.occurred_at, "checkpoint_name": line.checkpoint_name,
+                "zone_name": line.zone_name, "direction": line.direction, "verdict": line.verdict,
+                "method": line.method, "flags": line.flags,
+                "employee_name": None if hidden else line.employee_name,
+                "employee_matricule": None if hidden else line.employee_matricule,
+            })
+        return out
 
     # --- back-office ---------------------------------------------------------
     def create(self, actor_id: int, name: str) -> tuple[Device, str]:

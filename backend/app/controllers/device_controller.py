@@ -1,5 +1,5 @@
 """Phones: pairing + scanning without login (X-Device-Token), and their back-office management."""
-from fastapi import APIRouter, Depends, Header, Request, Response, status
+from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
 
 from app.controllers.deps import (
     get_device_service,
@@ -17,6 +17,9 @@ from app.schemas.dto import (
     DeviceCodeOut,
     DeviceIn,
     DeviceOut,
+    DevicePostIn,
+    DevicePostOut,
+    DeviceScanOut,
     DeviceScopeIn,
     DeviceSettingsOut,
     DeviceVoiceIn,
@@ -59,12 +62,28 @@ def device_checkpoints(device: Device = Depends(current_device), zones: ZoneServ
     return devices.allowed_checkpoints(device, zones.list_checkpoints(usable_only=True))
 
 
+@router.post("/device/post", response_model=DevicePostOut)
+def device_take_post(body: DevicePostIn, device: Device = Depends(current_device),
+                     devices: DeviceService = Depends(get_device_service)):
+    """The agent chose a post on the phone (FR-33): a change is written in the audit."""
+    devices.take_post(device, body.checkpoint_id)
+    return DevicePostOut(checkpoint_id=device.checkpoint.id, current_post=device.current_post,
+                         since=device.checkpoint_since)
+
+
+@router.get("/device/scans", response_model=list[DeviceScanOut])
+def device_recent_scans(limit: int = Query(30, ge=1, le=50), device: Device = Depends(current_device),
+                        devices: DeviceService = Depends(get_device_service)):
+    """This phone's last scans (FR-68), read only."""
+    return devices.recent_scans(device, limit)
+
+
 @router.post("/device/scan", response_model=ScanOut)
 def device_scan(body: ScanQrIn, device: Device = Depends(current_device),
                 service: ScanService = Depends(get_scan_service), signer: PhotoUrlSigner = Depends(get_photo_signer),
                 lang: str = Depends(request_lang),
                 devices: DeviceService = Depends(get_device_service)):
-    devices.require_covers(device, body.checkpoint_id)
+    devices.take_post(device, body.checkpoint_id)  # a scan elsewhere is a change of post too
     return to_out(service.scan_qr(ScanSource(device_id=device.id), body.checkpoint_id, body.token), signer, lang)
 
 
@@ -74,7 +93,7 @@ def device_scan_manual(body: ScanManualIn, device: Device = Depends(current_devi
                        signer: PhotoUrlSigner = Depends(get_photo_signer),
                 lang: str = Depends(request_lang),
                        devices: DeviceService = Depends(get_device_service)):
-    devices.require_covers(device, body.checkpoint_id)
+    devices.take_post(device, body.checkpoint_id)
     result = service.scan_manual(ScanSource(device_id=device.id), body.checkpoint_id, body.matricule)
     return to_out(result, signer, lang)
 

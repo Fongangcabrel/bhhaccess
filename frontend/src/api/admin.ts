@@ -33,6 +33,11 @@ import type {
   Monitoring,
   Org,
   Presence,
+  PresenceReport,
+  MovementReport,
+  RefusalTrend,
+  ReportFilters,
+  ReportKind,
   RevocationReason,
   Role,
   Schedule,
@@ -214,6 +219,13 @@ export class AdminApi {
   }
   exportAudit(format: "xlsx" | "pdf", filters: AuditFilters = {}) {
     return this.c.blob(`/exports/audit.${format}${query({ ...filters })}`);
+  }
+  // reports over a period (movements, presence by zone, refusal trends)
+  movementReport(filters: ReportFilters) { return this.c.get<MovementReport>(`/reports/movements${query(filters)}`); }
+  presenceReport(filters: ReportFilters) { return this.c.get<PresenceReport>(`/reports/presence${query(filters)}`); }
+  refusalTrend(filters: ReportFilters) { return this.c.get<RefusalTrend>(`/reports/refusals${query(filters)}`); }
+  exportReport(kind: ReportKind, format: "xlsx" | "pdf", filters: ReportFilters) {
+    return this.c.blob(`/exports/${kind}.${format}${query(filters)}`);
   }
   /** The badge to print: QR (logo) + matricule at real size, with cut marks. */
   badgePdf(badgeId: number) { return this.c.blob(`/badges/${badgeId}/print.pdf`); }

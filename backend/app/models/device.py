@@ -6,6 +6,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base, UtcDateTime
 
 
+def post_label(checkpoint) -> str:
+    """« Portail atelier (entrée) · Atelier · Usine de Bonabéri » (audit, back-office)."""
+    direction = "entrée" if checkpoint.direction.value == "ENTREE" else "sortie"
+    return f"{checkpoint.name} ({direction}) · {checkpoint.zone.name} · {checkpoint.zone.unit.name}"
+
+
 class Device(Base):
     """A phone paired once with a one-time code; afterwards it scans without any login.
 
@@ -26,6 +32,10 @@ class Device(Base):
     # The phone says the result aloud (« Entrée autorisée, Jean Mbarga »); the beep always stays.
     voice_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
     # What the phone covers; empty = the whole site (phones paired before this setting existed).
+    # The post the phone holds now (FR-33): each change is written in the audit (device.post).
+    checkpoint_id: Mapped[int | None] = mapped_column(ForeignKey("checkpoints.id", ondelete="SET NULL"))
+    checkpoint_since: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    checkpoint: Mapped["Checkpoint | None"] = relationship(lazy="joined")  # noqa: F821
     scope: Mapped[list["DeviceScope"]] = relationship(cascade="all, delete-orphan", lazy="selectin",
                                                       order_by="DeviceScope.id")
 
@@ -42,6 +52,10 @@ class Device(Base):
         return {"unit_ids": [s.unit_id for s in self.scope if s.unit_id is not None],
                 "zone_ids": [s.zone_id for s in self.scope if s.zone_id is not None],
                 "checkpoint_ids": [s.checkpoint_id for s in self.scope if s.checkpoint_id is not None]}
+
+    @property
+    def current_post(self) -> str | None:
+        return post_label(self.checkpoint) if self.checkpoint is not None else None
 
     @property
     def status(self) -> str:

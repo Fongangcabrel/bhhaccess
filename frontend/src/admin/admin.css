@@ -407,3 +407,22 @@ table tr.selected td { background: #fbf4f6; }
   .bulk-bar .link { margin-left: 0; }
   .admin main:has(.bulk-bar) { padding-bottom: 9rem; }
 }
+
+/* ---- Rapports (tâche 32) ------------------------------------------------------------- */
+.panel-title { font-size: .95rem; font-weight: 600; margin: 0; padding: .8rem 1rem .4rem; }
+.panel.trend .panel-title { padding: 0 0 .2rem; }
+.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+.report-grid table { width: 100%; }
+.trend-detail { margin: 0 0 .6rem; color: var(--sub); font-size: .85rem; min-height: 1.2em; }
+.trend-plot { position: relative; padding-left: 2rem; }
+.trend-max { position: absolute; left: 0; top: 0; font-size: .75rem; color: var(--sub); font-variant-numeric: tabular-nums; }
+.trend-bars { display: flex; align-items: flex-end; gap: 2px; height: 160px; border-bottom: 1px solid var(--line);
+  background: linear-gradient(var(--line) 1px, transparent 1px) top / 100% 50% repeat-y; }
+.trend-col { flex: 1 1 0; min-width: 3px; height: 100%; display: flex; align-items: flex-end; position: relative; cursor: default; outline: none; }
+.trend-col:focus-visible { box-shadow: 0 0 0 2px var(--bordeaux-700); border-radius: 4px; }
+.trend-bar { display: block; width: 100%; background: var(--bordeaux-600); border-radius: 4px 4px 0 0; transition: background .1s; }
+.trend-bar.on { background: var(--bordeaux-900); }
+.trend-day { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-size: .72rem; color: var(--sub); white-space: nowrap; }
+.trend-col:first-child .trend-day { left: 0; transform: none; }
+.trend-col:last-child .trend-day { left: auto; right: 0; transform: none; }
+.panel.trend { padding-bottom: 1.8rem; }

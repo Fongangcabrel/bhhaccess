@@ -110,6 +110,24 @@ export interface Device {
   /** "Tout le site" when no perimeter is set. */
   scope_summary?: string;
   scope_ids?: DeviceScopeIds;
+  /** The post the phone holds now, e.g. « Portail (entrée) · Atelier · Usine ». */
+  current_post?: string | null;
+  checkpoint_since?: string | null;
+}
+
+/** One line of the phone's history (its own last scans, read only). */
+export interface RecentScan {
+  id: number;
+  occurred_at: string;
+  checkpoint_name: string;
+  zone_name: string;
+  direction: Direction;
+  verdict: Verdict;
+  method: "QR" | "MANUEL" | "CONSOLE";
+  flags: string[];
+  /** null for « QR non reconnu »: the phone learns nothing more. */
+  employee_name: string | null;
+  employee_matricule: string | null;
 }
 
 /** Units, zones and single posts a phone covers; all empty = the whole site. */
@@ -556,3 +574,81 @@ export interface TravelTime {
   checkpoint_a_name: string | null;
   checkpoint_b_name: string | null;
 }
+
+// --- reports over a period (tâche 32) --------------------------------------------------------
+export interface ReportFilters {
+  date_from?: string;
+  date_to?: string;
+  employee_id?: number;
+  department_id?: number;
+  entity_id?: number;
+  unit_id?: number;
+  zone_id?: number;
+}
+
+export interface MovementRow {
+  employee_id: number;
+  matricule: string;
+  full_name: string;
+  entity_name: string | null;
+  department_name: string | null;
+  unit_name: string;
+  zone_id: number;
+  zone_name: string;
+  entries: number;
+  exits: number;
+  refused: number;
+  unblocks: number;
+  first_at: string;
+  last_at: string;
+}
+
+export interface MovementReport {
+  rows: MovementRow[];
+  employees: number;
+  entries: number;
+  exits: number;
+  refused: number;
+  unblocks: number;
+}
+
+export interface ZonePresenceRow {
+  unit_name: string;
+  zone_id: number;
+  zone_name: string;
+  mode: AntiPassbackMode;
+  /** null: zone in "Libre" mode, presence is not kept. */
+  inside_now: number | null;
+  people: number;
+  entries: number;
+  exits: number;
+  refused: number;
+}
+
+export interface PresenceReport {
+  rows: ZonePresenceRow[];
+  inside_now: number;
+  entries: number;
+  exits: number;
+  refused: number;
+}
+
+export interface TrendDay {
+  day: string;
+  total: number;
+  by_verdict: Partial<Record<Verdict, number>>;
+}
+
+export interface RefusalTrend {
+  date_from: string;
+  date_to: string;
+  total: number;
+  previous_total: number;
+  days: TrendDay[];
+  by_verdict: Partial<Record<Verdict, number>>;
+  by_zone: { zone_id: number; zone_name: string; unit_name: string; count: number }[];
+  by_employee: { employee_id: number; matricule: string; full_name: string; count: number }[];
+  unknown_qr: number;
+}
+
+export type ReportKind = "movements" | "presence" | "refusals";

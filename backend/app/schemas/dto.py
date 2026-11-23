@@ -1,5 +1,5 @@
 """API data contracts (the "View" of MVC): what goes in and out as JSON."""
-from datetime import datetime, time
+from datetime import date, datetime, time
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, computed_field
 
@@ -629,12 +629,39 @@ class DeviceOut(_Out):
     revoked_at: datetime | None
     code_expires_at: datetime | None
     voice_enabled: bool = True
+    current_post: str | None = None
+    checkpoint_since: datetime | None = None
     scope_summary: str = "Tout le site"
     scope_ids: dict = Field(default_factory=lambda: {"unit_ids": [], "zone_ids": [], "checkpoint_ids": []})
 
 
 class DeviceVoiceIn(BaseModel):
     enabled: bool
+
+
+class DevicePostIn(BaseModel):
+    checkpoint_id: int
+
+
+class DevicePostOut(BaseModel):
+    checkpoint_id: int
+    current_post: str
+    since: datetime
+
+
+class DeviceScanOut(BaseModel):
+    """One line of the phone's history: time, person, result. No photo, no internal reason."""
+
+    id: int
+    occurred_at: datetime
+    checkpoint_name: str
+    zone_name: str
+    direction: Direction
+    verdict: Verdict
+    method: ScanMethod
+    flags: list[str]
+    employee_name: str | None
+    employee_matricule: str | None
 
 
 class DeviceSettingsOut(BaseModel):
@@ -792,3 +819,82 @@ class MonitoringOut(BaseModel):
     units: list[MonitorUnit]
     posts: list[MonitorPost]
     recent_refusals: list[MonitorRefusal]
+
+
+# --- reports over a period (tâche 32) ---------------------------------------------------------
+class MovementRowOut(_Out):
+    employee_id: int
+    matricule: str
+    full_name: str
+    entity_name: str | None
+    department_name: str | None
+    unit_name: str
+    zone_id: int
+    zone_name: str
+    entries: int
+    exits: int
+    refused: int
+    unblocks: int
+    first_at: datetime
+    last_at: datetime
+
+
+class MovementReportOut(_Out):
+    rows: list[MovementRowOut]
+    employees: int
+    entries: int
+    exits: int
+    refused: int
+    unblocks: int
+
+
+class ZonePresenceRowOut(_Out):
+    unit_name: str
+    zone_id: int
+    zone_name: str
+    mode: AntiPassbackMode
+    inside_now: int | None = Field(description="Personnes à l'intérieur maintenant ; null pour une zone « Libre »")
+    people: int
+    entries: int
+    exits: int
+    refused: int
+
+
+class PresenceReportOut(_Out):
+    rows: list[ZonePresenceRowOut]
+    inside_now: int
+    entries: int
+    exits: int
+    refused: int
+
+
+class TrendDayOut(_Out):
+    day: date
+    total: int
+    by_verdict: dict[str, int]
+
+
+class CountByZoneOut(_Out):
+    zone_id: int
+    zone_name: str
+    unit_name: str
+    count: int
+
+
+class CountByEmployeeOut(_Out):
+    employee_id: int
+    matricule: str
+    full_name: str
+    count: int
+
+
+class RefusalTrendOut(_Out):
+    date_from: datetime
+    date_to: datetime
+    total: int
+    previous_total: int
+    days: list[TrendDayOut]
+    by_verdict: dict[str, int]
+    by_zone: list[CountByZoneOut]
+    by_employee: list[CountByEmployeeOut]
+    unknown_qr: int

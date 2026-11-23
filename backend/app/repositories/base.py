@@ -33,6 +33,14 @@ class BaseRepository(Generic[T]):
         self._session.delete(entity)
         self._session.flush()
 
+    def get_many(self, ids) -> dict[int, T]:
+        """Several rows at once, by primary key (one query instead of one per id)."""
+        ids = list(ids)
+        if not ids:
+            return {}
+        stmt = select(self.model).where(self.model.id.in_(ids))  # type: ignore[attr-defined]
+        return {item.id: item for item in self._session.scalars(stmt).unique()}  # type: ignore[attr-defined]
+
     def list(self, limit: int = 100, offset: int = 0) -> list[T]:
         stmt = select(self.model).order_by(self.model.id).limit(limit).offset(offset)  # type: ignore[attr-defined]
         return list(self._session.scalars(stmt))

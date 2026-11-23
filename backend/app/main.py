@@ -16,6 +16,7 @@ from app.controllers import (
     journal_controller,
     org_controller,
     photo_controller,
+    report_controller,
     scan_controller,
     user_controller,
     zone_controller,
@@ -75,7 +76,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     for module in (auth_controller, employee_controller, badge_controller,
                    zone_controller, scan_controller, journal_controller, user_controller, admin_controller,
                    device_controller, agent_controller, photo_controller, export_controller, org_controller,
-                   alert_controller):
+                   alert_controller, report_controller):
         app.include_router(module.router, prefix="/api")
 
     @app.get("/health", tags=["ops"])

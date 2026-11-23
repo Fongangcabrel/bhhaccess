@@ -1,5 +1,5 @@
 import type { ApiClient } from "./client";
-import type { Checkpoint, ScanResult } from "./types";
+import type { Checkpoint, RecentScan, ScanResult } from "./types";
 
 /** What a paired phone may do: pair, list posts, scan. No login, no back-office. */
 export class DeviceApi {
@@ -15,6 +15,17 @@ export class DeviceApi {
 
   settings() {
     return this.client.get<{ name: string; voice_enabled: boolean }>("/device/settings");
+  }
+
+  /** The agent holds this post now: the server records a change of post (audit). */
+  takePost(checkpointId: number) {
+    return this.client.post<{ checkpoint_id: number; current_post: string; since: string }>(
+      "/device/post", { checkpoint_id: checkpointId });
+  }
+
+  /** This phone's last scans (current shift), newest first. */
+  recentScans(limit = 30) {
+    return this.client.get<RecentScan[]>(`/device/scans?limit=${limit}`);
   }
 
   scanQr(checkpointId: number, token: string) {

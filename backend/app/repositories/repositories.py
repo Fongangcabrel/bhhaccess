@@ -1,7 +1,7 @@
 """Concrete repositories, one per aggregate."""
 from datetime import datetime
 
-from sqlalchemy import String, and_, cast, delete, func, select
+from sqlalchemy import String, and_, case, cast, delete, func, select
 from sqlalchemy.orm import Session
 
 from app.domain.enums import BadgeStatus, Direction, EmployeeStatus, Flag, ScanMethod, Verdict
@@ -25,6 +25,13 @@ from app.models import (
     ZonePresence,
 )
 from app.repositories.base import BaseRepository
+
+REFUSED_VERDICTS = [v for v in Verdict if v.value.startswith("REFUSE_")]
+_SCAN = AccessLog.method != ScanMethod.CONSOLE  # a real passage at a post, not a console unblock
+
+
+def _count(condition):
+    return func.coalesce(func.sum(case((condition, 1), else_=0)), 0)
 
 
 class EntityRepository(BaseRepository[Entity]):
@@ -247,6 +254,17 @@ class PresenceRepository:
         self._session.delete(presence)
         self._session.flush()
 
+    def count_by_zone(self, *, department_id: int | None = None, entity_id: int | None = None) -> dict[int, int]:
+        """People inside right now, zone by zone (reports), optionally for one department / entity."""
+        stmt = select(ZonePresence.zone_id, func.count()).group_by(ZonePresence.zone_id)
+        if department_id is not None or entity_id is not None:
+            stmt = stmt.join(Employee, Employee.id == ZonePresence.employee_id)
+            if department_id is not None:
+                stmt = stmt.where(Employee.department_id == department_id)
+            if entity_id is not None:
+                stmt = stmt.where(Employee.entity_id == entity_id)
+        return {row[0]: row[1] for row in self._session.execute(stmt)}  # noqa: C416
+
 
 class AccessLogRepository(BaseRepository[AccessLog]):
     model = AccessLog
@@ -340,10 +358,53 @@ class AccessLogRepository(BaseRepository[AccessLog]):
                 stmt = stmt.where(column == value)
         return self._session.scalar(stmt.limit(1)) is not None
 
+    def recent_for_device(self, device_id: int, since: datetime, limit: int) -> list[AccessLog]:
+        """A phone's own scans since ``since``, newest first (history shown on the phone)."""
+        stmt = (select(AccessLog).where(AccessLog.device_id == device_id, AccessLog.occurred_at >= since)
+                .order_by(AccessLog.occurred_at.desc(), AccessLog.id.desc()).limit(limit))
+        return list(self._session.scalars(stmt).unique())
+
     def since(self, start: datetime) -> list[AccessLog]:
         """Journal lines from ``start`` on, oldest first (employee, zone and post loaded with them)."""
         stmt = select(AccessLog).where(AccessLog.occurred_at >= start).order_by(AccessLog.occurred_at, AccessLog.id)
         return list(self._session.scalars(stmt).unique())
+
+    # --- reports (tâche 32): aggregated in SQL, same filters as the journal -------------
+    def movements(self, **filters) -> list:
+        """Entries, exits, refusals and unblocks per (employee, zone), with first and last passage."""
+        stmt = select(
+            AccessLog.employee_id, AccessLog.zone_id,
+            _count(and_(_SCAN, AccessLog.verdict == Verdict.AUTHORIZED)).label("entries"),
+            _count(and_(_SCAN, AccessLog.verdict == Verdict.EXIT_RECORDED)).label("exits"),
+            _count(AccessLog.verdict.in_(REFUSED_VERDICTS)).label("refused"),
+            _count(AccessLog.method == ScanMethod.CONSOLE).label("unblocks"),
+            func.min(AccessLog.occurred_at).label("first_at"),
+            func.max(AccessLog.occurred_at).label("last_at"),
+        )
+        stmt = self._filtered(stmt, **filters).where(AccessLog.employee_id.is_not(None))
+        return list(self._session.execute(stmt.group_by(AccessLog.employee_id, AccessLog.zone_id)))
+
+    def zone_activity(self, **filters) -> list:
+        """Per zone: entries, exits, refusals and distinct people who entered."""
+        entered = and_(_SCAN, AccessLog.verdict == Verdict.AUTHORIZED)
+        stmt = select(
+            AccessLog.zone_id,
+            _count(entered).label("entries"),
+            _count(and_(_SCAN, AccessLog.verdict == Verdict.EXIT_RECORDED)).label("exits"),
+            _count(AccessLog.verdict.in_(REFUSED_VERDICTS)).label("refused"),
+            func.count(func.distinct(case((entered, AccessLog.employee_id)))).label("people"),
+        )
+        return list(self._session.execute(self._filtered(stmt, **filters).group_by(AccessLog.zone_id)))
+
+    def refusals(self, **filters) -> list:
+        """Refused scans (time, verdict, zone, employee), oldest first: the trend is bucketed by local day."""
+        stmt = select(AccessLog.occurred_at, AccessLog.verdict, AccessLog.zone_id, AccessLog.employee_id)
+        stmt = self._filtered(stmt, **filters).where(AccessLog.verdict.in_(REFUSED_VERDICTS))
+        return list(self._session.execute(stmt.order_by(AccessLog.occurred_at)))
+
+    def count_refusals(self, **filters) -> int:
+        ids = self._filtered(select(AccessLog.id), **filters).where(AccessLog.verdict.in_(REFUSED_VERDICTS))
+        return self._session.scalar(select(func.count()).select_from(ids.subquery())) or 0
 
     def count_by_verdict(self, since: datetime) -> dict[Verdict, int]:
         stmt = (

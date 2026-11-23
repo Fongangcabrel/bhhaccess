@@ -25,6 +25,14 @@ export function ScanFlow() {
     if (posts !== null && checkpointId !== null && !checkpoint) clear();
   }, [posts, checkpointId, checkpoint, clear]);
 
+  // Tell the server which post this phone holds (FR-33: every change is journalised there).
+  // Same post again (reload) records nothing; offline, the next scan records it anyway.
+  const heldId = checkpoint?.id ?? null;
+  useEffect(() => {
+    if (heldId !== null) api.takePost(heldId).catch(() => undefined);
+  }, [api, heldId]);
+  const history = useCallback(() => api.recentScans(), [api]);
+
   if (checkpointId !== null && posts === null) return <p className="center muted">{t("flow.loading")}</p>;
   if (!checkpoint) {
     return <CheckpointPicker onSelect={(c) => { setPosts(null); select(c.id); }} />;
@@ -39,6 +47,7 @@ export function ScanFlow() {
       onSwitchSide={(c) => select(c.id)}
       onChangeCheckpoint={() => { setPosts(null); clear(); }}
       voice={voiceEnabled}
+      history={history}
     />
   );
 }

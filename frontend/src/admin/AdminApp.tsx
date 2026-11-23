@@ -12,6 +12,7 @@ import { DistancePage } from "./pages/DistancePage";
 import { AuditPage } from "./pages/AuditPage";
 import { GeneralPage } from "./pages/GeneralPage";
 import { OrgPage } from "./pages/OrgPage";
+import { ReportsPage } from "./pages/ReportsPage";
 import { EmployeeDetailPage } from "./pages/EmployeeDetailPage";
 import { EmployeesPage } from "./pages/EmployeesPage";
 import { JournalPage } from "./pages/JournalPage";
@@ -36,6 +37,7 @@ function Routed() {
         <Route path="agents" element={<Guard right="zones.view"><AgentsPage /></Guard>} />
         <Route path="journal" element={<Guard right="logs.view"><JournalPage /></Guard>} />
         <Route path="audit" element={<Guard right="audit.view"><AuditPage /></Guard>} />
+        <Route path="rapports" element={<Guard right="reports.view"><ReportsPage /></Guard>} />
         <Route path="alertes" element={<Guard right="reports.view"><AlertsPage /></Guard>} />
         <Route path="general" element={<GeneralPage />} />
         <Route path="utilisateurs" element={<Guard right="users.manage"><UsersPage /></Guard>} />

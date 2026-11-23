@@ -28,6 +28,7 @@ export const MENU_SECTIONS: { title: string | null; items: MenuItem[] }[] = [
     title: tx("Rapport"),
     items: [
       { to: "/admin/journal", label: tx("Journal"), right: "logs.view" },
+      { to: "/admin/rapports", label: tx("Rapports"), right: "reports.view" },
       { to: "/admin/alertes", label: tx("Alertes"), right: "reports.view" },
     ],
   },

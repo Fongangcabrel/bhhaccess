@@ -56,7 +56,7 @@ export function DevicesPage() {
         {devices.data?.length === 0 && <Empty>{tx("Aucun téléphone enregistré.")}</Empty>}
         {!!devices.data?.length && (
           <table className="cards">
-            <thead><tr><th>{tx("Nom")}</th><th>{tx("Périmètre")}</th><th>{tx("Voix")}</th><th>{tx("État")}</th><th>{tx("Dernière activité")}</th><th /></tr></thead>
+            <thead><tr><th>{tx("Nom")}</th><th>{tx("Périmètre")}</th><th>{tx("Poste actuel")}</th><th>{tx("Voix")}</th><th>{tx("État")}</th><th>{tx("Dernière activité")}</th><th /></tr></thead>
             <tbody>
               {devices.data.map((d) => (
                 <tr key={d.id}>
@@ -65,6 +65,11 @@ export function DevicesPage() {
                     <span className={d.scope_summary && d.scope_summary !== "Tout le site" ? "scope-summary" : "muted"}>
                       {d.scope_summary ?? tx("Tout le site")}
                     </span>
+                  </td>
+                  <td>
+                    {d.current_post
+                      ? <>{d.current_post}{d.checkpoint_since && <><br /><span className="muted">{tx("depuis {0}", [formatDateTime(d.checkpoint_since)])}</span></>}</>
+                      : <span className="muted">–</span>}
                   </td>
                   <td>
                     <VoiceSwitch on={d.voice_enabled !== false} disabled={!manage} name={d.name}
