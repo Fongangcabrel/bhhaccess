@@ -1,6 +1,6 @@
 """Use case: a gate agent scans a badge (or types a matricule) at a checkpoint."""
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
@@ -49,6 +49,7 @@ class ScanResult:
     last_entry_checkpoint: str | None = None
     detail: str | None = None  # precise refusal shown to the agent (e.g. "Hors des horaires autorisés")
     alert: str | None = None  # alert raised by this scan, announced at the post
+    repeat: bool = False  # same badge, same post, < 3 s: the first answer again, nothing new recorded
 
 
 # Internal reasons behind a "QR non reconnu": written in the journal, never shown to the agent.
@@ -58,6 +59,8 @@ REASON_ARCHIVED = "employe_archive"
 MANUAL = "saisie manuelle"
 WARNING_DOUBLE_ENTRY = "DOUBLE_ENTREE"
 # Announced at the post, most serious first (EMPLOYE_ARCHIVE stays hidden from the agent).
+# A badge read twice at the same post this fast is one passage (double frame, network retry).
+REPEAT_WINDOW = timedelta(seconds=3)
 ALERT_PRIORITY = ("SIMULTANEE", "BADGE_REVOQUE", "HORS_HORAIRE", "REFUS_REPETES", "RAFALE")
 
 
@@ -118,6 +121,9 @@ class ScanService:
                  token_version: int, method: ScanMethod, reason: str | None = None) -> ScanResult:
         now = self._clock.now()
         employee = self._employees.get_locked(badge.employee_id)  # serialise scans of one person
+        previous = self._logs.repeat_of(badge.id, checkpoint.id, now - REPEAT_WINDOW)
+        if previous is not None:  # checked under the lock: two simultaneous requests are one passage too
+            return self._repeat(previous, checkpoint, employee)
         if employee.status == EmployeeStatus.ARCHIVED:
             # Entry or exit: "QR non reconnu", no identity; the real reason stays in the journal.
             reason_text = REASON_ARCHIVED if reason is None else f"{REASON_ARCHIVED} ({reason})"
@@ -143,9 +149,7 @@ class ScanService:
         decision = self._engine.decide(ctx)
         detail = None
         if decision.verdict == Verdict.DENIED_ZONE and window is not None:
-            detail = access_window.AGENT_MESSAGE[window]
-            if window == access_window.WindowRefusal.OUTSIDE_HOURS:
-                detail += " : " + " · ".join(access_window.describe_slot(s) for s in authorization.slots)
+            detail = self._window_detail(window, authorization)
             reason = window.value if reason is None else f"{window.value} ({reason})"
         flags = list(decision.flags)
         passed = decision.verdict in (Verdict.AUTHORIZED, Verdict.EXIT_RECORDED)
@@ -175,6 +179,34 @@ class ScanService:
                           presence.entered_at if show_entry else None,
                           self._checkpoint_name(presence.checkpoint_id) if show_entry else None, detail,
                           alert)
+
+    @staticmethod
+    def _window_detail(window: access_window.WindowRefusal, authorization) -> str:
+        detail = access_window.AGENT_MESSAGE[window]
+        if window == access_window.WindowRefusal.OUTSIDE_HOURS and authorization is not None:
+            detail += " : " + " · ".join(access_window.describe_slot(s) for s in authorization.slots)
+        return detail
+
+    def _repeat(self, log: AccessLog, checkpoint: Checkpoint, employee: Employee) -> ScanResult:
+        """The answer given to the first scan, rebuilt from its journal line: no new line,
+        no alert, no change of presence (TRD: one passage = one line)."""
+        zone = checkpoint.zone
+        if log.verdict == Verdict.DENIED_INVALID:  # e.g. an archived person's QR: still nothing about them
+            return ScanResult(log.verdict, (), log.occurred_at, log.id, log.direction, zone.name, checkpoint.name,
+                              None, repeat=True)
+        flags = tuple(Flag(f) for f in log.flags)
+        warning = WARNING_DOUBLE_ENTRY if Flag.DOUBLE_ENTRY in flags and zone.antipassback_warn_agent else None
+        presence = self._presences.get_locked(employee.id, zone.id)
+        show_entry = presence is not None and (log.verdict == Verdict.DENIED_ANTIPASSBACK or warning)
+        detail = None
+        window = next((w for w in access_window.WindowRefusal if (log.reason or "").startswith(w.value)), None)
+        if log.verdict == Verdict.DENIED_ZONE and window is not None:
+            detail = self._window_detail(window, self._authorizations.find(employee.id, zone.id))
+        return ScanResult(log.verdict, flags, log.occurred_at, log.id, log.direction, zone.name, checkpoint.name,
+                          employee, warning,
+                          presence.entered_at if show_entry else None,
+                          self._checkpoint_name(presence.checkpoint_id) if show_entry else None,
+                          detail, repeat=True)
 
     def _checkpoint_name(self, checkpoint_id: int | None) -> str | None:
         checkpoint = self._checkpoints.get(checkpoint_id) if checkpoint_id else None

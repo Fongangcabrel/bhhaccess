@@ -201,6 +201,8 @@ export interface ScanResult {
   detail?: string | null;
   /** Alert raised by this scan, announced at the post (never EMPLOYE_ARCHIVE). */
   alert?: AlertType | null;
+  /** Same badge at the same post within 3 s: the first answer again (same log_id), nothing new recorded. */
+  repeat?: boolean;
 }
 
 // --- back-office ---------------------------------------------------------------

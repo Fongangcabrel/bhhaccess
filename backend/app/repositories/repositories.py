@@ -358,6 +358,14 @@ class AccessLogRepository(BaseRepository[AccessLog]):
                 stmt = stmt.where(column == value)
         return self._session.scalar(stmt.limit(1)) is not None
 
+    def repeat_of(self, badge_id: int, checkpoint_id: int, after: datetime) -> AccessLog | None:
+        """The line of the same badge at the same post more recent than ``after`` (repeated scan)."""
+        stmt = (select(AccessLog)
+                .where(AccessLog.badge_id == badge_id, AccessLog.checkpoint_id == checkpoint_id,
+                       AccessLog.occurred_at > after)
+                .order_by(AccessLog.occurred_at.desc(), AccessLog.id.desc()).limit(1))
+        return self._session.scalars(stmt).first()
+
     def recent_for_device(self, device_id: int, since: datetime, limit: int) -> list[AccessLog]:
         """A phone's own scans since ``since``, newest first (history shown on the phone)."""
         stmt = (select(AccessLog).where(AccessLog.device_id == device_id, AccessLog.occurred_at >= since)

@@ -2,6 +2,7 @@
 
 
 def scan(client, headers, checkpoint, token):
+    client.app.state.clock.advance(seconds=4)  # distinct passages: a repeat within 3 s counts once
     return client.post("/api/scan", headers=headers, json={"checkpoint_id": checkpoint["id"], "token": token}).json()
 
 
@@ -47,8 +48,9 @@ def test_same_badge_at_two_sites_too_fast(client, agent, admin, world, clock):
     second = scan(client, agent, accueil, world["token"])
     assert second["verdict"] == "AUTORISE"  # a signal, not a refusal
     (alert,) = alerts(client, admin, type="SIMULTANEE")
-    assert "« Entrée usine » puis à « Accueil » en 40 s" in alert["message"] and "10 min" in alert["message"]
-    assert alert["detail"]["elapsed_seconds"] == 40 and alert["detail"]["required_seconds"] == 600
+    # 40 s waited + the 4 s the scan helper adds before each scan
+    assert "« Entrée usine » puis à « Accueil » en 44 s" in alert["message"] and "10 min" in alert["message"]
+    assert alert["detail"]["elapsed_seconds"] == 44 and alert["detail"]["required_seconds"] == 600
 
 
 def test_travel_time_per_pair_overrides_the_default(client, agent, admin, world, clock):

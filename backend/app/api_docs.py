@@ -37,6 +37,8 @@ Le refus d'un accès temporaire ou d'une plage horaire est un `REFUSE_ZONE` dont
 Indicateurs possibles sur une ligne du journal : `DOUBLE_ENTREE`, `SORTIE_SANS_ENTREE`,
 `SORTIE_BADGE_REVOQUE`, `SORTIE_BADGE_EXPIRE`, `SORTIE_EMPLOYE_SUSPENDU`, `DEBLOQUE`.
 Méthode d'une ligne : `QR`, `MANUEL` (matricule saisi), `CONSOLE` (déblocage depuis le back-office).
+Le même badge relu au même poste en moins de 3 s est un seul passage : la réponse du premier scan
+est renvoyée (même `log_id`, `repeat: true`), sans nouvelle ligne au journal ni alerte.
 
 ### Alertes
 Calculées à chaque scan, elles ne changent jamais la décision : `SIMULTANEE` (deux postes plus vite

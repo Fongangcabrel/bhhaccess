@@ -24,7 +24,7 @@ def to_out(result: ScanResult, signer: PhotoUrlSigner, lang: str = "fr") -> Scan
         checkpoint=result.checkpoint_name,
         employee=employee, warning=result.warning,
         last_entry_at=result.last_entry_at, last_entry_checkpoint=result.last_entry_checkpoint,
-        detail=tr(result.detail, lang), alert=result.alert,
+        detail=tr(result.detail, lang), alert=result.alert, repeat=result.repeat,
     )
 
 

@@ -13,6 +13,7 @@ def next_day(client, clock, days=1):
 
 
 def scan(client, headers, checkpoint, token):
+    client.app.state.clock.advance(seconds=4)  # distinct passages: a repeat within 3 s counts once
     return client.post("/api/scan", headers=headers, json={"checkpoint_id": checkpoint["id"], "token": token}).json()
 
 

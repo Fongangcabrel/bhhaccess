@@ -65,7 +65,7 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest                                          # 218 tests (SQLite en mémoire)
+pytest                                          # 223 tests (SQLite en mémoire)
 # même suite sur un vrai PostgreSQL (schéma via Alembic) :
 BHH_TEST_DATABASE_URL=postgresql+psycopg2://user@host/db pytest   # + la course concurrente
 alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0016)
@@ -105,6 +105,10 @@ Derrière Nginx, mettre `BHH_TRUST_PROXY_HEADERS=true` pour que l'audit enregist
 Deux scans simultanés de la même personne sont sérialisés par un verrou sur la ligne employé
 (`EmployeeRepository.get_locked`) : un seul passe en zone stricte.
 
+Le même badge relu au même poste en moins de 3 s (image en double, nouvel essai réseau) est un seul
+passage : le serveur renvoie la réponse du premier scan (`repeat: true`, même `log_id`) sans rien
+enregistrer de plus (`ScanService.REPEAT_WINDOW`, vérifié sous le même verrou).
+
 ## Pas encore fait
 
-Voir `suivi de taches.xlsx` (tâches 35 et suivantes) · mode hors ligne (phase 3) · durcissement (verrouillage des connexions, HTTPS Nginx).
+Voir `suivi de taches.xlsx` (tâches 36 et suivantes) · mode hors ligne (phase 3) · durcissement (verrouillage des connexions, HTTPS Nginx).

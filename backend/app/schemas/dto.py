@@ -308,6 +308,9 @@ class ScanOut(BaseModel):
     # Alert raised by this very scan (type code), announced by the phone. Never EMPLOYE_ARCHIVE:
     # the agent only sees « QR non reconnu » for an archived employee.
     alert: str | None = None
+    # Same badge at the same post less than 3 s after: the first answer again (same log_id),
+    # nothing new in the journal.
+    repeat: bool = False
 
 
 class UnblockIn(BaseModel):

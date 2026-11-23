@@ -2,6 +2,7 @@
 
 
 def scan(client, headers, checkpoint, token):
+    client.app.state.clock.advance(seconds=4)  # distinct passages: a repeat within 3 s counts once
     response = client.post("/api/scan", headers=headers, json={"checkpoint_id": checkpoint["id"], "token": token})
     assert response.status_code == 200, response.text
     return response.json()

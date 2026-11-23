@@ -19,6 +19,7 @@ def test_scan_reports_the_alert_it_raised(client, admin, world):
     body = {"checkpoint_id": world["entry"]["id"], "token": world["token"]}
     assert client.post("/api/device/scan", headers=device, json=body).json()["alert"] is None
     client.post(f"/api/badges/{world['badge']['id']}/revoke", headers=admin, json={"reason": "VOL"})
+    client.app.state.clock.advance(seconds=4)  # later passage, not a repeat of the first scan
     out = client.post("/api/device/scan", headers=device, json=body).json()
     assert out["verdict"] == "REFUSE_REVOQUE" and out["alert"] == "BADGE_REVOQUE"
 
