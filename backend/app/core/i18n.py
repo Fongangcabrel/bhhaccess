@@ -21,6 +21,12 @@ EN: dict[str, str] = {
     "Authentification requise": "Authentication required",
     # --- back-office --------------------------------------------------------------------
     "Agent introuvable": "Agent not found",
+    "Ce rôle est attribué à des comptes : donnez-leur d'abord un autre rôle":
+        "This role is held by accounts: give them another role first",
+    "Les quatre rôles modèles ne peuvent être ni renommés ni supprimés":
+        "The four template roles can be neither renamed nor deleted",
+    "Nom du rôle obligatoire": "Role name required",
+    "Un rôle porte déjà ce nom": "A role already has this name",
     "La date de début doit précéder la date de fin": "The start date must come before the end date",
     "Période trop longue : 366 jours maximum pour les tendances": "Period too long: 366 days at most for trends",
     "Alerte déjà prise en compte": "Alert already handled",

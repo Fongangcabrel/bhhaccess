@@ -386,6 +386,10 @@ export interface Role {
   name: string;
   label: string;
   permissions: string[];
+  /** One of the four template roles: neither renamed nor deleted. */
+  is_template?: boolean;
+  /** Accounts holding the role (a role in use cannot be deleted). */
+  users?: number;
 }
 
 export type BulkAction = "org" | "suspend" | "reactivate" | "archive" | "add_zones" | "remove_zones";

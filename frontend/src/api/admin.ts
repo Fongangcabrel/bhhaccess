@@ -264,6 +264,9 @@ export class AdminApi {
   }
   clearOverride(id: number, permission: string) { return this.c.delete(`/users/${id}/overrides/${permission}`); }
   updateRole(id: number, permissions: string[]) { return this.c.put<Role>(`/roles/${id}`, { permissions }); }
+  createRole(label: string, permissions: string[]) { return this.c.post<Role>("/roles", { label, permissions }); }
+  renameRole(id: number, label: string) { return this.c.patch<Role>(`/roles/${id}`, { label }); }
+  deleteRole(id: number) { return this.c.delete(`/roles/${id}`); }
 }
 
 function fileForm(file: File): FormData {

@@ -258,8 +258,20 @@ ROUTES: dict[str, tuple[str, str, str]] = {
     "PUT /api/users/{user_id}/overrides": ("Utilisateurs", "Accorder ou retirer un droit à une personne",
         "Prioritaire sur son rôle."),
     "DELETE /api/users/{user_id}/overrides/{permission}": ("Utilisateurs", "Revenir au droit du rôle", ""),
-    "GET /api/roles": ("Utilisateurs", "Lister les rôles", "Avec leurs droits."),
-    "PUT /api/roles/{role_id}": ("Utilisateurs", "Modifier les droits d'un rôle", ""),
+    "GET /api/roles": ("Utilisateurs", "Lister les rôles",
+        "Les quatre rôles modèles puis les rôles personnalisés, avec leurs droits, `is_template` et le nombre "
+        "de comptes (`users`)."),
+    "PUT /api/roles/{role_id}": ("Utilisateurs", "Modifier les droits d'un rôle",
+        "S'applique tout de suite à tous les comptes du rôle. Super admin fixe ; on n'accorde pas un droit "
+        "qu'on n'a pas."),
+    "GET /api/permissions": ("Utilisateurs", "Catalogue des actions",
+        "Les 23 actions groupées par thème, avec leur code et leur libellé (FR-05)."),
+    "POST /api/roles": ("Utilisateurs", "Créer un rôle personnalisé",
+        "Nom libre (unique) et droits choisis parmi les siens ; le nom technique est déduit du nom (FR-07)."),
+    "PATCH /api/roles/{role_id}": ("Utilisateurs", "Renommer un rôle personnalisé",
+        "Les quatre rôles modèles ne se renomment pas."),
+    "DELETE /api/roles/{role_id}": ("Utilisateurs", "Supprimer un rôle personnalisé",
+        "Seulement s'il n'est attribué à aucun compte (`409` sinon) ; les rôles modèles restent."),
     # --- Scan (agent connecté)
     "POST /api/scan": ("Scan", "Scanner un QR (agent connecté)",
         "Renvoie la décision (`verdict`), la photo (sauf `REFUSE_INVALIDE`), l'avertissement éventuel "

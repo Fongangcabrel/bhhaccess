@@ -426,3 +426,8 @@ table tr.selected td { background: #fbf4f6; }
 .trend-col:first-child .trend-day { left: 0; transform: none; }
 .trend-col:last-child .trend-day { left: auto; right: 0; transform: none; }
 .panel.trend { padding-bottom: 1.8rem; }
+
+/* ---- Rôles personnalisés (tâche 37) ---------------------------------------------------- */
+.matrix .role-head { display: flex; flex-direction: column; align-items: center; gap: .25rem; font-weight: 400; font-size: .75rem; margin-top: .2rem; }
+.matrix .role-actions { display: flex; gap: .25rem; }
+.matrix code.perm-code { font-size: .72rem; color: var(--sub); background: var(--paper); padding: 0 .3rem; border-radius: 3px; }

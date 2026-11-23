@@ -468,6 +468,11 @@ class RoleRepository(BaseRepository[Role]):
 class UserRepository(BaseRepository[User]):
     model = User
 
+    def count_by_role(self) -> dict[int, int]:
+        """How many accounts hold each role (a role in use cannot be deleted)."""
+        stmt = select(User.role_id, func.count()).group_by(User.role_id)
+        return {row[0]: row[1] for row in self._session.execute(stmt)}  # noqa: C416
+
     def by_ids(self, ids: set[int]) -> list[User]:
         return list(self._session.scalars(select(User).where(User.id.in_(ids))))
 

@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from app.controllers.deps import get_user_service, require
-from app.domain.permissions import Permission
+from app.domain.permissions import PERMISSION_CATALOGUE, Permission
 from app.models import User
 from app.schemas.dto import (
     ActiveIn,
+    CatalogueGroupOut,
     OverrideIn,
     PasswordResetIn,
     RoleAssignIn,
+    RoleCreateIn,
     RoleOut,
+    RoleRenameIn,
     RoleUpdateIn,
     UserIn,
     UserOut,
@@ -71,4 +74,31 @@ def list_roles(_: User = Depends(require(Permission.ROLES_ASSIGN)),
 @router.put("/roles/{role_id}", response_model=RoleOut)
 def update_role(role_id: int, body: RoleUpdateIn, actor: User = Depends(require(Permission.ROLES_MANAGE)),
                 service: UserService = Depends(get_user_service)):
-    return service.update_role(actor, role_id, set(body.permissions))
+    role = service.update_role(actor, role_id, set(body.permissions))
+    return next(r for r in service.list_roles() if r.id == role.id)
+
+
+@router.get("/permissions", response_model=list[CatalogueGroupOut])
+def permission_catalogue(_: User = Depends(require(Permission.ROLES_ASSIGN))):
+    """The catalogue of actions, grouped by theme (FR-05)."""
+    return [CatalogueGroupOut(theme=theme, permissions=[{"code": p.value, "label": label} for p, label in items])
+            for theme, items in PERMISSION_CATALOGUE]
+
+
+@router.post("/roles", response_model=RoleOut, status_code=status.HTTP_201_CREATED)
+def create_role(body: RoleCreateIn, actor: User = Depends(require(Permission.ROLES_MANAGE)),
+                service: UserService = Depends(get_user_service)):
+    return service.create_role(actor, body.label, set(body.permissions))
+
+
+@router.patch("/roles/{role_id}", response_model=RoleOut)
+def rename_role(role_id: int, body: RoleRenameIn, actor: User = Depends(require(Permission.ROLES_MANAGE)),
+                service: UserService = Depends(get_user_service)):
+    return service.rename_role(actor, role_id, body.label)
+
+
+@router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_role(role_id: int, actor: User = Depends(require(Permission.ROLES_MANAGE)),
+                service: UserService = Depends(get_user_service)):
+    service.delete_role(actor, role_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

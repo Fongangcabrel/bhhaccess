@@ -67,3 +67,44 @@ DEFAULT_ROLES: dict[str, dict] = {
         ),
     },
 }
+
+
+# FR-05: the catalogue shown to the operators, grouped by theme (label + code). Every action once,
+# in the order of the screen; frontend/src/lib/permissions.ts shows the same groups (test_roles.py).
+PERMISSION_CATALOGUE: list[tuple[str, list[tuple[Permission, str]]]] = [
+    ("Employés", [
+        (Permission.EMPLOYEES_VIEW, "Voir les employés"),
+        (Permission.EMPLOYEES_EDIT, "Créer / modifier"),
+        (Permission.EMPLOYEES_IMPORT, "Importer Excel"),
+        (Permission.EMPLOYEES_ARCHIVE, "Suspendre / archiver"),
+    ]),
+    ("Badges et accès", [
+        (Permission.BADGES_ISSUE, "Émettre un badge"),
+        (Permission.BADGES_REVOKE, "Révoquer un badge"),
+        (Permission.AUTHORIZATIONS_MANAGE, "Gérer les accès aux zones"),
+    ]),
+    ("Zones", [
+        (Permission.ZONES_VIEW, "Voir les zones"),
+        (Permission.ZONES_MANAGE, "Créer zones et points"),
+        (Permission.ZONES_ANTIPASSBACK, "Régler le contrôle des entrées (zones)"),
+    ]),
+    ("Terrain", [
+        (Permission.SCAN_PERFORM, "Scanner"),
+        (Permission.SCAN_MANUAL, "Saisie manuelle du matricule"),
+        (Permission.SCAN_HISTORY, "Historique de ses scans"),
+        (Permission.PRESENCE_UNBLOCK, "Débloquer une personne"),
+    ]),
+    ("Consultation", [
+        (Permission.LOGS_VIEW, "Voir le journal"),
+        (Permission.REPORTS_VIEW, "Voir les rapports"),
+        (Permission.AUDIT_VIEW, "Voir l'audit"),
+        (Permission.DATA_EXPORT, "Exporter les données"),
+        (Permission.DATA_PURGE, "Supprimer en lot"),
+    ]),
+    ("Administration", [
+        (Permission.USERS_MANAGE, "Gérer les comptes"),
+        (Permission.ROLES_ASSIGN, "Attribuer rôles et droits"),
+        (Permission.ROLES_MANAGE, "Modifier les rôles"),
+        (Permission.SYSTEM_CONFIG, "Configuration"),
+    ]),
+]

@@ -171,8 +171,14 @@ function Roles() {
   const { admin, can } = useAuth();
   const roles = useAsync(() => admin.roles(), []);
   const [error, setError] = useState<string | null>(null);
+  const [naming, setNaming] = useState<Role | "new" | null>(null);
   const act = useAction(setError);
   const editable = can("roles.manage");
+  const remove = (role: Role) => {
+    if (window.confirm(tx("Supprimer le rôle « {0} » ?", [role.label]))) {
+      void act(() => admin.deleteRole(role.id), () => void roles.reload());
+    }
+  };
 
   const toggle = (role: Role, key: string) => {
     const next = role.permissions.includes(key) ? role.permissions.filter((p) => p !== key) : [...role.permissions, key];
@@ -182,17 +188,37 @@ function Roles() {
   return (
     <>
       <p className="muted">{tx("Un changement de rôle s'applique tout de suite à toutes les personnes qui l'ont. Le rôle Super admin est fixe.")}</p>
+      {editable && (
+        <p><button className="primary" onClick={() => setNaming("new")}>{tx("+ Nouveau rôle")}</button></p>
+      )}
       <ErrorNote message={error ?? roles.error} />
       <section className="panel flush scroll">
         <table className="matrix">
-          <thead><tr><th>{tx("Droit")}</th>{roles.data?.map((r) => <th key={r.id}>{r.label}</th>)}</tr></thead>
+          <thead><tr><th>{tx("Droit")}</th>{roles.data?.map((r) => (
+            <th key={r.id}>
+              {r.label}
+              {r.is_template === false && (
+                <span className="role-head">
+                  <span className="muted">{tx("Personnalisé · {0} compte(s)", [r.users ?? 0])}</span>
+                  {editable && (
+                    <span className="role-actions">
+                      <button className="small" onClick={() => setNaming(r)} aria-label={tx("Renommer le rôle {0}", [r.label])}>{tx("Renommer")}</button>
+                      <button className="small danger" onClick={() => remove(r)} disabled={(r.users ?? 0) > 0}
+                        title={(r.users ?? 0) > 0 ? tx("Attribué à des comptes : donnez-leur d'abord un autre rôle") : undefined}
+                        aria-label={tx("Supprimer le rôle {0}", [r.label])}>{tx("Supprimer")}</button>
+                    </span>
+                  )}
+                </span>
+              )}
+            </th>
+          ))}</tr></thead>
           <tbody>
             {PERMISSION_GROUPS.map((group) => (
               <Fragment key={group.title}>
                 <tr className="group-row"><td colSpan={(roles.data?.length ?? 0) + 1}>{group.title}</td></tr>
                 {group.items.map((item) => (
                   <tr key={item.key}>
-                    <td>{item.label}</td>
+                    <td>{item.label} <code className="perm-code">{item.key}</code></td>
                     {roles.data?.map((r) => (
                       <td key={r.id} className="center-cell">
                         <input type="checkbox" checked={r.permissions.includes(item.key)}
@@ -207,7 +233,56 @@ function Roles() {
           </tbody>
         </table>
       </section>
+      {naming && roles.data && (
+        <RoleName role={naming === "new" ? null : naming} templates={roles.data.filter((r) => r.is_template !== false)}
+          onClose={() => setNaming(null)} onDone={() => { setNaming(null); void roles.reload(); }} />
+      )}
     </>
+  );
+}
+
+/** New custom role (from a template, keeping only the rights one holds) or new name for one. */
+function RoleName({ role, templates, onClose, onDone }: {
+  role: Role | null; templates: Role[]; onClose: () => void; onDone: () => void;
+}) {
+  const { admin, can } = useAuth();
+  const [label, setLabel] = useState(role?.label ?? "");
+  const [from, setFrom] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const act = useAction(setError);
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (role) {
+      void act(() => admin.renameRole(role.id, label), onDone);
+      return;
+    }
+    const base = templates.find((t) => String(t.id) === from)?.permissions ?? [];
+    void act(() => admin.createRole(label, base.filter((p) => can(p))), onDone);
+  };
+  return (
+    <Modal title={role ? tx("Renommer le rôle {0}", [role.label]) : tx("Nouveau rôle")} onClose={onClose}>
+      <form className="form" onSubmit={submit}>
+        <Field label={tx("Nom du rôle")}>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={120} required autoFocus />
+        </Field>
+        {!role && (
+          <>
+            <Field label={tx("Partir de")}>
+              <select value={from} onChange={(e) => setFrom(e.target.value)}>
+                <option value="">{tx("Aucun droit")}</option>
+                {templates.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </Field>
+            <p className="muted">{tx("Les droits se cochent ensuite dans le tableau. Vous ne pouvez donner que des droits que vous avez.")}</p>
+          </>
+        )}
+        <ErrorNote message={error} />
+        <footer>
+          <button type="button" onClick={onClose}>{tx("Annuler")}</button>
+          <button className="primary">{role ? tx("Renommer") : tx("Créer le rôle")}</button>
+        </footer>
+      </form>
+    </Modal>
   );
 }
 

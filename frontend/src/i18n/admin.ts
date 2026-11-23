@@ -678,4 +678,18 @@ export const ADMIN_EN: Record<string, string> = {
   "À l'intérieur maintenant": "Inside now",
   // --- Téléphones : poste actuel (tâche 34)
   "depuis {0}": "since {0}",
+  // --- Rôles personnalisés (tâche 37)
+  "+ Nouveau rôle": "+ New role",
+  "Attribué à des comptes : donnez-leur d'abord un autre rôle": "Held by accounts: give them another role first",
+  "Aucun droit": "No right",
+  "Créer le rôle": "Create the role",
+  "Les droits se cochent ensuite dans le tableau. Vous ne pouvez donner que des droits que vous avez.":
+    "Then tick the rights in the table. You can only give rights you hold.",
+  "Nom du rôle": "Role name",
+  "Nouveau rôle": "New role",
+  "Partir de": "Start from",
+  "Personnalisé · {0} compte(s)": "Custom · {0} account(s)",
+  "Renommer le rôle {0}": "Rename the role {0}",
+  "Supprimer le rôle {0}": "Delete the role {0}",
+  "Supprimer le rôle « {0} » ?": "Delete the role “{0}”?",
 };

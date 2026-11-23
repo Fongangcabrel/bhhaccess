@@ -3,11 +3,14 @@
 Guardrails: nobody edits their own rights, the last super admin cannot be removed, and
 nobody can hand out a right they do not hold themselves (no privilege escalation).
 """
+import re
+import unicodedata
+
 from app.core.clock import Clock
 from app.core.exceptions import ConflictError, DomainError, ForbiddenError, NotFoundError
 from app.core.security import check_password_policy, hash_password
 from app.domain.enums import OverrideEffect
-from app.domain.permissions import Permission
+from app.domain.permissions import DEFAULT_ROLES, Permission
 from app.models import Role, User, UserPermissionOverride
 from app.repositories.repositories import RoleRepository, UserRepository
 from app.services.audit_service import AuditService
@@ -102,7 +105,43 @@ class UserService:
 
     # --- roles -----------------------------------------------------------
     def list_roles(self) -> list[Role]:
-        return self._roles.list()
+        """Templates first (in their usual order), then the custom roles; each with its number of accounts."""
+        holders = self._users.count_by_role()
+        order = list(DEFAULT_ROLES)
+        roles = sorted(self._roles.list(limit=500),
+                       key=lambda r: (order.index(r.name) if r.name in order else len(order), r.label.casefold()))
+        for role in roles:
+            role.users = holders.get(role.id, 0)
+            role.is_template = role.name in DEFAULT_ROLES
+        return roles
+
+    def create_role(self, actor: User, label: str, permissions: set[Permission]) -> Role:
+        """A custom role (FR-07): named freely, with the rights of one's choice among one's own."""
+        label = self._free_label(label)
+        if not permissions <= PermissionService.effective(actor):
+            raise ForbiddenError("Vous ne pouvez pas accorder un droit que vous n'avez pas")
+        role = self._roles.add(Role(name=self._unique_name(label), label=label,
+                                    permissions=sorted(p.value for p in permissions)))
+        self._audit.record(actor.id, "role.create", role.label, after={"permissions": list(role.permissions)})
+        role.users, role.is_template = 0, False
+        return role
+
+    def rename_role(self, actor: User, role_id: int, label: str) -> Role:
+        role = self._require_custom(role_id)
+        label = self._free_label(label, role.id)
+        before, role.label = role.label, label
+        if before != label:
+            self._audit.record(actor.id, "role.rename", role.label, before={"label": before}, after={"label": label})
+        role.users, role.is_template = self._users.count_by_role().get(role.id, 0), False
+        return role
+
+    def delete_role(self, actor: User, role_id: int) -> None:
+        """Only an unused custom role: the four templates stay, and nobody is left without a role."""
+        role = self._require_custom(role_id)
+        if self._users.count_by_role().get(role.id, 0):
+            raise ConflictError("Ce rôle est attribué à des comptes : donnez-leur d'abord un autre rôle")
+        self._audit.record(actor.id, "role.delete", role.label, before={"permissions": list(role.permissions)})
+        self._roles.remove(role)
 
     def update_role(self, actor: User, role_id: int, permissions: set[Permission]) -> Role:
         """Changing a bundle applies at once to everyone holding the role (rights are read live)."""
@@ -143,6 +182,29 @@ class UserService:
         if user is None:
             raise NotFoundError("Utilisateur introuvable")
         return user
+
+    def _require_custom(self, role_id: int) -> Role:
+        role = self._require_role(role_id)
+        if role.name in DEFAULT_ROLES:
+            raise DomainError("Les quatre rôles modèles ne peuvent être ni renommés ni supprimés")
+        return role
+
+    def _free_label(self, label: str, own_id: int | None = None) -> str:
+        label = " ".join(label.split())
+        if not label:
+            raise DomainError("Nom du rôle obligatoire")
+        if any(r.label.casefold() == label.casefold() and r.id != own_id for r in self._roles.list(limit=500)):
+            raise ConflictError("Un rôle porte déjà ce nom")
+        return label
+
+    def _unique_name(self, label: str) -> str:
+        """Technical name from the label: « Chef d'équipe » -> chef_d_equipe (suffixed if taken)."""
+        ascii_ = unicodedata.normalize("NFKD", label).encode("ascii", "ignore").decode()
+        base = re.sub(r"[^a-z0-9]+", "_", ascii_.lower()).strip("_")[:50] or "role"
+        name, n = base, 2
+        while self._roles.by_name(name) is not None:
+            name, n = f"{base}_{n}", n + 1
+        return name
 
     def _require_role(self, role_id: int) -> Role:
         role = self._roles.get(role_id)

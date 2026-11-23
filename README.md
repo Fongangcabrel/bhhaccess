@@ -19,7 +19,7 @@ Unité ──< Zone ──< Poste de contrôle (entrée ou sortie) ──< Affec
 - **Agents** (facultatif) : renseignés par le super user et placés à un poste ; l'historique des affectations est conservé. Chaque passage du journal enregistre l'unité, la zone, le poste, le téléphone et l'**agent au poste à ce moment** (nom figé, il survit à un renommage). Filtres et export CSV par unité et par agent.
 
 ```bash
-cd frontend && npm install && npm test && npm run build   # 106 tests
+cd frontend && npm install && npm test && npm run build   # 110 tests
 npm run dev                                               # http://localhost:5173, proxy /api -> localhost:8001
 ```
 
@@ -65,7 +65,7 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest                                          # 223 tests (SQLite en mémoire)
+pytest                                          # 227 tests (SQLite en mémoire)
 # même suite sur un vrai PostgreSQL (schéma via Alembic) :
 BHH_TEST_DATABASE_URL=postgresql+psycopg2://user@host/db pytest   # + la course concurrente
 alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0016)
@@ -88,7 +88,7 @@ Crée 2 unités (Usine de Bonabéri : Atelier « Sortie obligatoire » + Magasin
 
 ## Fonctionnalités
 
-Auth + RBAC (23 droits, rôles, exceptions par personne, garde-fous) · mots de passe : changement, réinitialisation, mot de passe temporaire imposé, sessions fermées au changement ·
+Auth + RBAC (catalogue de 23 droits groupés par thème, 4 rôles modèles et rôles personnalisés à créer, renommer ou supprimer s'ils ne sont pas attribués, exceptions par personne, garde-fous) · mots de passe : changement, réinitialisation, mot de passe temporaire imposé, sessions fermées au changement ·
 employés : création, modification, suspension, archivage (QR « non reconnu », badges révoqués) et restauration, photos normalisées servies par lien signé 60 s, import Excel en deux temps (vérification sans rien enregistrer, puis création ; modèle à télécharger ; lignes refusées en Excel à corriger et réimporter ; 5 Mo / 5 000 lignes max ; nom du fichier dans l'audit) · actions en lot sur une sélection d'employés (entité / département, suspendre, réactiver, archiver avec motif, ajouter ou retirer des zones ; chaque employé contrôlé et audité, les refus listés) et zones par département (tout l'effectif d'un département, avec le nombre de personnes concernées avant de valider) ·
 entités et départements (deux listes indépendantes gérées dans la console, création rapide depuis la fiche employé) · badges (émission réservée aux employés actifs, révocation avec motif, réémission, un seul badge actif garanti en base), QR compact signé Ed25519 avec logo (ECC H) et badge PDF à taille réelle ·
 unités, zones, postes : modification, désactivation, suppression protégée ·

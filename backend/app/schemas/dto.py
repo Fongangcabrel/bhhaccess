@@ -499,10 +499,31 @@ class RoleOut(_Out):
     name: str
     label: str
     permissions: list[str]
+    is_template: bool = True  # one of the four template roles: neither renamed nor deleted
+    users: int = 0  # accounts holding the role
 
 
 class RoleUpdateIn(BaseModel):
     permissions: list[Permission]
+
+
+class RoleCreateIn(BaseModel):
+    label: str = Field(min_length=1, max_length=120)
+    permissions: list[Permission] = Field(default_factory=list)
+
+
+class RoleRenameIn(BaseModel):
+    label: str = Field(min_length=1, max_length=120)
+
+
+class CatalogueItemOut(BaseModel):
+    code: str
+    label: str
+
+
+class CatalogueGroupOut(BaseModel):
+    theme: str
+    permissions: list[CatalogueItemOut]
 
 
 # --- import -------------------------------------------------------------------
