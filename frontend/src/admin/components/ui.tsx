@@ -1,5 +1,5 @@
 import { tx } from "../../i18n";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Verdict } from "../../api/types";
 import { describeVerdict } from "../../lib/verdicts";
 
@@ -57,7 +57,9 @@ export interface MenuAction {
 /** "⋯" button opening a short list of actions: keeps rows readable, on desktop and on phones. */
 export function ActionsMenu({ label, actions }: { label: string; actions: MenuAction[] }) {
   const [open, setOpen] = useState(false);
+  const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" });
   const root = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent | KeyboardEvent) => {
@@ -65,12 +67,39 @@ export function ActionsMenu({ label, actions }: { label: string; actions: MenuAc
         setOpen(false);
       }
     };
+    // The list is placed against the window: scrolling or resizing would leave it behind.
+    const dismiss = (event: Event) => {
+      if (!list.current?.contains(event.target as Node)) setOpen(false);
+    };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", close);
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
     return () => {
       document.removeEventListener("mousedown", close);
       document.removeEventListener("keydown", close);
+      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("resize", dismiss);
     };
+  }, [open]);
+  // Fixed position, so a table that scrolls (overflow: auto) no longer cuts the list;
+  // it opens upwards when there is not enough room below the button.
+  useLayoutEffect(() => {
+    if (!open) {
+      setPlace({ visibility: "hidden" });
+      return;
+    }
+    const button = root.current?.getBoundingClientRect();
+    const height = list.current?.offsetHeight ?? 0;
+    if (!button) return;
+    const gap = 4;
+    const below = window.innerHeight - button.bottom - gap;
+    const up = below < height && button.top - gap > below;
+    setPlace({
+      position: "fixed",
+      right: Math.max(gap, window.innerWidth - button.right),
+      ...(up ? { bottom: window.innerHeight - button.top + gap } : { top: button.bottom + gap }),
+    });
   }, [open]);
   return (
     <div className="menu" ref={root}>
@@ -79,7 +108,7 @@ export function ActionsMenu({ label, actions }: { label: string; actions: MenuAc
         ⋯
       </button>
       {open && (
-        <div className="menu-list" role="menu">
+        <div className="menu-list" role="menu" ref={list} style={place}>
           {actions.map((action) => (
             <button key={action.label} type="button" role="menuitem" disabled={action.disabled} title={action.hint}
               className={action.danger ? "danger" : undefined}
