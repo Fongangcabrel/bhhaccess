@@ -37,6 +37,31 @@ class LoginIn(BaseModel):
 class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    # Renewal (FR-01): POST /auth/refresh with it before the access token expires (expires_in seconds).
+    refresh_token: str | None = None
+    expires_in: int | None = None
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=200)
+
+
+class SettingOut(BaseModel):
+    key: str
+    group: str
+    label: str
+    unit: str
+    minimum: int
+    maximum: int
+    default: int
+    value: int
+    customised: bool
+
+
+class SettingsIn(BaseModel):
+    """Only the settings to change; ``null`` puts one back to its installation default."""
+
+    values: dict[str, int | None]
 
 
 class MeOut(_Out):

@@ -18,8 +18,10 @@ téléphones des agents aux postes, et rapports.
 
 ### S'authentifier
 * **Back-office et agents connectés** : `POST /api/auth/login` renvoie un jeton ; l'envoyer ensuite
-  dans l'en-tête `Authorization: Bearer <jeton>` (bouton **Authorize** ci-dessus). La session dure
-  8 h. Un mot de passe temporaire doit être changé (`POST /api/auth/password`) avant tout autre appel.
+  dans l'en-tête `Authorization: Bearer <jeton>` (bouton **Authorize** ci-dessus). Ce jeton dure
+  15 min par défaut ; `POST /api/auth/refresh` en donne un nouveau, jusqu'à la fin de la session (8 h par défaut,
+  réglable dans la configuration). Un mot de passe temporaire doit être changé (`POST /api/auth/password`)
+  avant tout autre appel.
 * **Téléphones appairés** (sans compte) : `POST /api/device/pair` avec le code à usage unique
   affiché dans le back-office, puis l'en-tête `X-Device-Token: <jeton>` sur les routes `/api/device/...`.
   Un téléphone ne voit et ne scanne que les postes de **son périmètre**.
@@ -86,7 +88,20 @@ TAGS: list[dict[str, str]] = [
 ROUTES: dict[str, tuple[str, str, str]] = {
     # --- Connexion
     "POST /api/auth/login": ("Connexion", "Se connecter",
-        "Identifiant + mot de passe ; renvoie le jeton de session (8 h). Trop d'échecs : `429`."),
+        "Identifiant + mot de passe ; renvoie un jeton d'accès court (`expires_in` secondes, 15 min par "
+        "défaut) et un `refresh_token` pour le renouveler sans se reconnecter (session de 8 h par défaut)."),
+    "POST /api/auth/refresh": ("Connexion", "Renouveler la session",
+        "Envoie le `refresh_token` reçu à la connexion ; renvoie un nouveau jeton d'accès et le jeton de "
+        "renouvellement suivant (l'ancien ne sert plus). Un jeton déjà utilisé ferme toute la session "
+        "(copie probable). La session s'arrête à l'heure fixée à la connexion (réglage *Durée maximale "
+        "d'une session*), au changement de mot de passe ou à la désactivation du compte. Échec : `401`."),
+    "POST /api/auth/logout": ("Connexion", "Se déconnecter",
+        "Ferme la session de ce `refresh_token` ; le jeton d'accès s'éteint de lui-même en quelques minutes."),
+    "GET /api/settings": ("Utilisateurs", "Configuration du système",
+        "Durées de session et seuils d'alerte : valeur actuelle, valeur d'installation, limites."),
+    "PATCH /api/settings": ("Utilisateurs", "Modifier la configuration",
+        "`{\"values\": {\"session.access_minutes\": 10}}` ; `null` remet la valeur d'installation. Tout est "
+        "vérifié avant d'enregistrer ; le changement est tracé dans l'audit et s'applique tout de suite."),
     "GET /api/auth/me": ("Connexion", "Mon compte", "Nom, rôle et droits effectifs de la personne connectée."),
     "POST /api/auth/password": ("Connexion", "Changer mon mot de passe",
         "Renvoie une nouvelle session ; les autres sessions de la personne s'arrêtent. "

@@ -658,3 +658,24 @@ export interface RefusalTrend {
 }
 
 export type ReportKind = "movements" | "presence" | "refusals";
+
+/** Back-office session: short access token, renewed with the refresh token (FR-01). */
+export interface SessionTokens {
+  access_token: string;
+  refresh_token?: string | null;
+  expires_in?: number | null;
+}
+
+export interface SystemSetting {
+  key: string;
+  group: string;
+  label: string;
+  unit: string;
+  minimum: number;
+  maximum: number;
+  /** Installation value (environment). */
+  default: number;
+  value: number;
+  /** Changed in the console (differs from the installation value). */
+  customised: boolean;
+}

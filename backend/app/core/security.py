@@ -43,9 +43,11 @@ class SessionTokenCodec:
         self._ttl = timedelta(minutes=ttl_minutes)
         self._clock = clock
 
-    def issue(self, user_id: int) -> str:
+    def issue(self, user_id: int, ttl_minutes: int | None = None) -> str:
+        """``ttl_minutes``: the duration set in the console (session.access_minutes), else the default."""
         now = self._clock.now()
-        payload = {"sub": str(user_id), "iat": now, "exp": now + self._ttl}
+        ttl = timedelta(minutes=ttl_minutes) if ttl_minutes is not None else self._ttl
+        payload = {"sub": str(user_id), "iat": now, "exp": now + ttl}
         return jwt.encode(payload, self._secret, algorithm="HS256")
 
     def read(self, token: str) -> tuple[int, datetime]:

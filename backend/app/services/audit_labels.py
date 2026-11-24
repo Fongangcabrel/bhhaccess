@@ -19,6 +19,7 @@ CATEGORY_LABEL = {
     "role": "Rôles et droits",
     "export": "Exports",
     "alert": "Alertes",
+    "settings": "Configuration",
     "entity": "Entités",
     "department": "Départements",
     "logs": "Purge du journal",
@@ -79,6 +80,8 @@ ACTION_LABEL = {
     "user.password.reset": "Mot de passe réinitialisé",
     "role.update": "Droits d'un rôle modifiés",
     "role.create": "Rôle créé",
+    "settings.update": "Configuration modifiée",
+    "user.session.reused": "Session fermée : jeton de renouvellement réutilisé",
     "role.rename": "Rôle renommé",
     "role.delete": "Rôle supprimé",
     "entity.create": "Entité créée",
@@ -119,6 +122,11 @@ FIELD_LABEL = {
     "previous_photo": "Remplace une photo existante", "restrictions": "Restrictions", "scope": "Périmètre",
     "voice": "Voix",
     "minutes": "Minutes", "alert_id": "Alerte n°",
+    "session.access_minutes": "Durée d'un jeton d'accès (min)",
+    "session.refresh_hours": "Durée maximale d'une session (h)",
+    "alerts.default_seconds_between_units": "Temps de trajet par défaut entre unités (s)",
+    "alerts.burst_count": "Rafale : nombre de scans", "alerts.burst_seconds": "Rafale : en moins de (s)",
+    "alerts.refusal_count": "Refus répétés : nombre", "alerts.refusal_minutes": "Refus répétés : en moins de (min)",
 }
 
 # Technical keys kept in the stored detail but not worth reading on screen.

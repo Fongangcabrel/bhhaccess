@@ -1,11 +1,18 @@
 import { tx } from "../i18n";
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { ApiClient } from "../api/client";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ApiClient, bearer } from "../api/client";
 import { AdminApi } from "../api/admin";
-import type { Me } from "../api/types";
+import type { Me, SessionTokens } from "../api/types";
 import { safeStorage } from "../lib/storage";
 
 const TOKEN_KEY = "bhh.token";
+const REFRESH_KEY = "bhh.refresh";
+
+function store(tokens: SessionTokens) {
+  safeStorage.set(TOKEN_KEY, tokens.access_token);
+  if (tokens.refresh_token) safeStorage.set(REFRESH_KEY, tokens.refresh_token);
+  else safeStorage.remove(REFRESH_KEY);
+}
 
 interface AuthState {
   admin: AdminApi;
@@ -22,22 +29,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => safeStorage.get(TOKEN_KEY));
   const [user, setUser] = useState<Me | null>(null);
 
-  const signOut = useCallback(() => {
+  const clear = useCallback(() => {
     safeStorage.remove(TOKEN_KEY);
+    safeStorage.remove(REFRESH_KEY);
     setToken(null);
     setUser(null);
   }, []);
 
+  // Renewal and logout go through a client without session: a refused renewal must not loop.
+  const sessionApi = useMemo(() => new AdminApi(new ApiClient(() => null, () => undefined)), []);
+  const renewing = useRef<Promise<boolean> | null>(null);
+  const renew = useCallback(() => {
+    // One renewal at a time: calls failing together all wait for the same new token.
+    renewing.current ??= (async () => {
+      const refreshToken = safeStorage.get(REFRESH_KEY);
+      if (!refreshToken) return false;
+      try {
+        const tokens = await sessionApi.refresh(refreshToken);
+        store(tokens);
+        setToken(tokens.access_token);
+        return true;
+      } catch {
+        return false;
+      }
+    })().finally(() => { renewing.current = null; });
+    return renewing.current;
+  }, [sessionApi]);
+
+  const signOut = useCallback(() => {
+    const refreshToken = safeStorage.get(REFRESH_KEY);
+    if (refreshToken) sessionApi.logout(refreshToken).catch(() => undefined); // ends the session on the server
+    clear();
+  }, [sessionApi, clear]);
+
   // The client reads the token lazily so it always sends the current one.
-  const admin = useMemo(() => new AdminApi(new ApiClient(() => safeStorage.get(TOKEN_KEY), signOut)), [signOut]);
+  const admin = useMemo(
+    () => new AdminApi(new ApiClient(() => safeStorage.get(TOKEN_KEY), clear, "/api", bearer, renew)),
+    [clear, renew],
+  );
 
   const can = useCallback((permission: string) => user?.permissions.includes(permission) ?? false, [user]);
 
   const signIn = useCallback(
     async (username: string, password: string) => {
-      const { access_token } = await admin.login(username, password);
-      safeStorage.set(TOKEN_KEY, access_token);
-      setToken(access_token);
+      const tokens = await admin.login(username, password);
+      store(tokens);
+      setToken(tokens.access_token);
       setUser(await admin.me());
     },
     [admin],
@@ -45,9 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const changePassword = useCallback(
     async (current: string, next: string) => {
-      const { access_token } = await admin.changePassword(current, next);
-      safeStorage.set(TOKEN_KEY, access_token); // the old token no longer works
-      setToken(access_token);
+      const tokens = await admin.changePassword(current, next);
+      store(tokens); // the old session no longer works
+      setToken(tokens.access_token);
       setUser(await admin.me());
     },
     [admin],

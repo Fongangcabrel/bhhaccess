@@ -56,7 +56,7 @@ def employee_authorizations(employee_id: int, _: User = Depends(require(Permissi
 
 
 @router.get("/presence", response_model=list[PresenceOut])
-def who_is_inside(zone_id: int | None = None, _: User = Depends(require(Permission.LOGS_VIEW)),
+def who_is_inside(zone_id: int | None = None, _: User = Depends(require(Permission.REPORTS_VIEW)),
                   service: ReportService = Depends(get_report_service)):
     return [
         PresenceOut(employee_id=p.employee_id, matricule=p.employee.matricule, full_name=p.employee.full_name,

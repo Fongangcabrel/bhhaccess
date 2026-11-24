@@ -21,6 +21,9 @@ EN: dict[str, str] = {
     "Authentification requise": "Authentication required",
     # --- back-office --------------------------------------------------------------------
     "Agent introuvable": "Agent not found",
+    "Session expirée : reconnectez-vous": "Session expired: log in again",
+    "Réglage inconnu": "Unknown setting",
+    "Valeur hors limites": "Value out of range",
     "Ce rôle est attribué à des comptes : donnez-leur d'abord un autre rôle":
         "This role is held by accounts: give them another role first",
     "Les quatre rôles modèles ne peuvent être ni renommés ni supprimés":

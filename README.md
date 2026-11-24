@@ -19,7 +19,7 @@ Unité ──< Zone ──< Poste de contrôle (entrée ou sortie) ──< Affec
 - **Agents** (facultatif) : renseignés par le super user et placés à un poste ; l'historique des affectations est conservé. Chaque passage du journal enregistre l'unité, la zone, le poste, le téléphone et l'**agent au poste à ce moment** (nom figé, il survit à un renommage). Filtres et export CSV par unité et par agent.
 
 ```bash
-cd frontend && npm install && npm test && npm run build   # 110 tests
+cd frontend && npm install && npm test && npm run build   # 114 tests
 npm run dev                                               # http://localhost:5173, proxy /api -> localhost:8001
 ```
 
@@ -65,15 +65,15 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest                                          # 227 tests (SQLite en mémoire)
+pytest                                          # 234 tests (SQLite en mémoire)
 # même suite sur un vrai PostgreSQL (schéma via Alembic) :
 BHH_TEST_DATABASE_URL=postgresql+psycopg2://user@host/db pytest   # + la course concurrente
-alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0016)
+alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0017)
 uvicorn app.main:create_app --factory --reload --port 8001  # http://localhost:8001/docs
 # production : cp .env.example .env && docker compose up --build   (alembic upgrade head au démarrage)
 ```
 
-Compte initial : variables `BHH_INITIAL_ADMIN_*`. Migrations : `alembic revision --autogenerate -m "..."`.
+Compte initial : variables `BHH_INITIAL_ADMIN_*`. Sessions du back-office : jeton d'accès de `BHH_ACCESS_TOKEN_MINUTES` (15) renouvelé par un jeton à usage unique jusqu'à `BHH_REFRESH_TOKEN_HOURS` (8) ; ces durées et les seuils d'alerte se règlent aussi dans Paramétrage ▸ Configuration (`system.config`). Migrations : `alembic revision --autogenerate -m "..."`.
 
 Documentation de l'API : `/docs` (Swagger) ou `/redoc`, en français, rangée comme le menu du back-office,
 avec le droit requis de chaque route (lu dans le code). Elle est décrite dans `backend/app/api_docs.py` :

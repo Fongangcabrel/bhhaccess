@@ -63,7 +63,9 @@ def app(clock, tmp_path):
     settings = Settings(database_url=TEST_DB_URL, jwt_secret="test-secret-test-secret-test-secret-0123",
                         initial_admin_username="admin", initial_admin_password="pw-admin",
                         initial_admin_must_change_password=False,
-                        photos_dir=str(tmp_path / "photos"))
+                        photos_dir=str(tmp_path / "photos"),
+                        # The suite moves the clock by hours with one login; renewal is tested in test_sessions.py
+                        access_token_minutes=480)
     return create_app(settings, clock)
 
 

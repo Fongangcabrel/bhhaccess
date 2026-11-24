@@ -18,6 +18,7 @@ from app.controllers import (
     photo_controller,
     report_controller,
     scan_controller,
+    settings_controller,
     user_controller,
     zone_controller,
 )
@@ -30,10 +31,10 @@ from app.core.rate_limit import FailureLimiter
 from app.core.security import SessionTokenCodec
 from app.domain.qr_token import Ed25519TokenSigner, load_or_create_dev_key
 from app.domain.rules import build_default_engine
-from app.services.alert_service import AlertRules
 from app.services.bootstrap import seed_defaults
 from app.services.photo_service import PhotoUrlSigner
 from app.services.qr_image import QrImageRenderer
+from app.services.settings_service import defaults_from
 
 
 def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
@@ -52,11 +53,8 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.clock = clock
     app.state.timezone = settings.timezone
     app.state.trust_proxy_headers = settings.trust_proxy_headers
-    app.state.alert_rules = AlertRules(
-        default_seconds_between_units=settings.alert_default_seconds_between_units,
-        burst_count=settings.alert_burst_count, burst_seconds=settings.alert_burst_seconds,
-        refusal_count=settings.alert_refusal_count, refusal_minutes=settings.alert_refusal_minutes,
-    )
+    # Installation defaults of the settings changed in the console (sessions, alert thresholds).
+    app.state.setting_defaults = defaults_from(settings)
     qr_key = settings.qr_private_key_pem or load_or_create_dev_key(settings.qr_dev_key_path)
     app.state.signer = Ed25519TokenSigner(qr_key, settings.qr_issuer)
     app.state.engine = build_default_engine()
@@ -76,7 +74,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     for module in (auth_controller, employee_controller, badge_controller,
                    zone_controller, scan_controller, journal_controller, user_controller, admin_controller,
                    device_controller, agent_controller, photo_controller, export_controller, org_controller,
-                   alert_controller, report_controller):
+                   alert_controller, report_controller, settings_controller):
         app.include_router(module.router, prefix="/api")
 
     @app.get("/health", tags=["ops"])

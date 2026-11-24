@@ -13,6 +13,8 @@ export class ApiError extends Error {
 type TokenProvider = () => string | null;
 type UnauthorizedHandler = () => void;
 type AuthHeader = (token: string) => Record<string, string>;
+/** Gets a new access token (session renewal); false when the session is over. */
+type Renewer = () => Promise<boolean>;
 
 /** Back-office users send a bearer token; paired phones send their device token. */
 export const bearer: AuthHeader = (token) => ({ Authorization: `Bearer ${token}` });
@@ -24,6 +26,7 @@ export class ApiClient {
     private readonly onUnauthorized: UnauthorizedHandler,
     private readonly baseUrl = "/api",
     private readonly authHeader: AuthHeader = bearer,
+    private readonly renew?: Renewer,
   ) {}
 
   get<T>(path: string): Promise<T> {
@@ -68,7 +71,7 @@ export class ApiClient {
     return (await response.json()) as T;
   }
 
-  private async send(method: string, path: string, body?: unknown): Promise<Response> {
+  private async send(method: string, path: string, body?: unknown, retried = false): Promise<Response> {
     const headers: Record<string, string> = {};
     const token = this.getToken();
     if (token) Object.assign(headers, this.authHeader(token));
@@ -87,7 +90,11 @@ export class ApiClient {
       throw new ApiError(0, t("net.unreachable"));
     }
 
-    if (response.status === 401 && token) this.onUnauthorized();
+    if (response.status === 401 && token) {
+      // Expired access token: renew the session once, then replay the call with the new token.
+      if (this.renew && !retried && (await this.renew())) return this.send(method, path, body, true);
+      this.onUnauthorized();
+    }
     if (!response.ok) throw new ApiError(response.status, await this.messageOf(response));
     return response;
   }

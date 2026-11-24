@@ -39,6 +39,7 @@ from app.services.presence_service import PresenceService
 from app.services.qr_image import QrImageRenderer
 from app.services.report_service import ReportService
 from app.services.scan_service import ScanService
+from app.services.settings_service import SettingsService
 from app.services.user_service import UserService
 from app.services.zone_service import ZoneService
 
@@ -80,9 +81,15 @@ def get_audit(request: Request, session: Session = Depends(get_session),
     return AuditService(r.AuditRepository(session), clock, ip, r.UserRepository(session))
 
 
+def get_settings_service(request: Request, session: Session = Depends(get_session), clock: Clock = Depends(get_clock),
+                         audit: AuditService = Depends(get_audit)) -> SettingsService:
+    return SettingsService(session, request.app.state.setting_defaults, clock, audit)
+
+
 def get_auth_service(session: Session = Depends(get_session), codec: SessionTokenCodec = Depends(get_codec),
-                     clock: Clock = Depends(get_clock), audit: AuditService = Depends(get_audit)) -> AuthService:
-    return AuthService(r.UserRepository(session), codec, audit, clock)
+                     clock: Clock = Depends(get_clock), audit: AuditService = Depends(get_audit),
+                     settings: SettingsService = Depends(get_settings_service)) -> AuthService:
+    return AuthService(r.UserRepository(session), codec, audit, clock, r.RefreshTokenRepository(session), settings)
 
 
 def get_employee_service(session: Session = Depends(get_session), audit: AuditService = Depends(get_audit),
@@ -115,7 +122,8 @@ def get_scan_service(session: Session = Depends(get_session), signer: TokenSigne
         authorizations=r.AuthorizationRepository(session), presences=r.PresenceRepository(session),
         logs=r.AccessLogRepository(session), assignments=r.AssignmentRepository(session),
         signer=signer, engine=engine, clock=clock, timezone=request.app.state.timezone,
-        alerts=AlertService(session, None, clock, getattr(request.app.state, "alert_rules", None)),
+        alerts=AlertService(session, None, clock,
+                            SettingsService(session, request.app.state.setting_defaults, clock).alert_rules()),
     )
 
 
@@ -226,4 +234,5 @@ def get_org_service(session: Session = Depends(get_session), audit: AuditService
 
 def get_alert_service(request: Request, session: Session = Depends(get_session),
                       audit: AuditService = Depends(get_audit), clock: Clock = Depends(get_clock)) -> AlertService:
-    return AlertService(session, audit, clock, getattr(request.app.state, "alert_rules", None))
+    rules = SettingsService(session, request.app.state.setting_defaults, clock).alert_rules()
+    return AlertService(session, audit, clock, rules)

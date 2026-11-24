@@ -41,6 +41,8 @@ import type {
   RevocationReason,
   Role,
   Schedule,
+  SessionTokens,
+  SystemSetting,
   Stats,
   TravelTime,
   Unit,
@@ -65,12 +67,15 @@ export class AdminApi {
 
   // session
   login(username: string, password: string) {
-    return this.c.post<{ access_token: string }>("/auth/login", { username, password });
+    return this.c.post<SessionTokens>("/auth/login", { username, password });
   }
+  /** Next tokens of the session; the refresh token sent is used up. */
+  refresh(refreshToken: string) { return this.c.post<SessionTokens>("/auth/refresh", { refresh_token: refreshToken }); }
+  logout(refreshToken: string) { return this.c.post<void>("/auth/logout", { refresh_token: refreshToken }); }
   me() { return this.c.get<Me>("/auth/me"); }
   /** Returns a new session token; the other sessions of the account are closed. */
   changePassword(current: string, next: string) {
-    return this.c.post<{ access_token: string }>("/auth/password", { current_password: current, new_password: next });
+    return this.c.post<SessionTokens>("/auth/password", { current_password: current, new_password: next });
   }
   resetPassword(userId: number, password: string) {
     return this.c.post<UserRow>(`/users/${userId}/password`, { new_password: password });
@@ -220,6 +225,10 @@ export class AdminApi {
   exportAudit(format: "xlsx" | "pdf", filters: AuditFilters = {}) {
     return this.c.blob(`/exports/audit.${format}${query({ ...filters })}`);
   }
+  // system configuration (system.config)
+  settings() { return this.c.get<SystemSetting[]>("/settings"); }
+  /** null puts a setting back to its installation default. */
+  updateSettings(values: Record<string, number | null>) { return this.c.patch<SystemSetting[]>("/settings", { values }); }
   // reports over a period (movements, presence by zone, refusal trends)
   movementReport(filters: ReportFilters) { return this.c.get<MovementReport>(`/reports/movements${query(filters)}`); }
   presenceReport(filters: ReportFilters) { return this.c.get<PresenceReport>(`/reports/presence${query(filters)}`); }

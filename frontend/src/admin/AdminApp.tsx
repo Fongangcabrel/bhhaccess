@@ -12,6 +12,7 @@ import { DistancePage } from "./pages/DistancePage";
 import { AuditPage } from "./pages/AuditPage";
 import { GeneralPage } from "./pages/GeneralPage";
 import { OrgPage } from "./pages/OrgPage";
+import { ConfigPage } from "./pages/ConfigPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { EmployeeDetailPage } from "./pages/EmployeeDetailPage";
 import { EmployeesPage } from "./pages/EmployeesPage";
@@ -40,6 +41,7 @@ function Routed() {
         <Route path="rapports" element={<Guard right="reports.view"><ReportsPage /></Guard>} />
         <Route path="alertes" element={<Guard right="reports.view"><AlertsPage /></Guard>} />
         <Route path="general" element={<GeneralPage />} />
+        <Route path="configuration" element={<Guard right="system.config"><ConfigPage /></Guard>} />
         <Route path="utilisateurs" element={<Guard right="users.manage"><UsersPage /></Guard>} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>

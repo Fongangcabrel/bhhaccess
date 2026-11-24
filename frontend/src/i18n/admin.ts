@@ -692,4 +692,18 @@ export const ADMIN_EN: Record<string, string> = {
   "Renommer le rôle {0}": "Rename the role {0}",
   "Supprimer le rôle {0}": "Delete the role {0}",
   "Supprimer le rôle « {0} » ?": "Delete the role “{0}”?",
+  // --- Configuration (tâche 38)
+  "Configuration enregistrée.": "Configuration saved.",
+  "Durée d'un jeton d'accès": "Access token lifetime",
+  "Durée maximale d'une session (renouvelée sans reconnexion)": "Maximum session length (renewed without logging in again)",
+  "Les changements s'appliquent tout de suite et sont inscrits dans l'audit. Une session déjà ouverte garde sa durée.":
+    "Changes apply at once and are written in the audit. A session already open keeps its length.",
+  "Rafale : en moins de": "Burst: within",
+  "Rafale : nombre de scans d'un badge": "Burst: number of scans of one badge",
+  "Refus répétés : en moins de": "Repeated refusals: within",
+  "Refus répétés : nombre de refus": "Repeated refusals: number of refusals",
+  "Rétablir": "Reset",
+  "Sessions": "Sessions",
+  "Temps de trajet par défaut entre deux unités": "Default travel time between two units",
+  "Valeur d'installation : {0} {1}": "Installation value: {0} {1}",
 };

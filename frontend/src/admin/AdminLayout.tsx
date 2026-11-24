@@ -22,6 +22,7 @@ export const MENU_SECTIONS: { title: string | null; items: MenuItem[] }[] = [
       { to: "/admin/agents", label: tx("Agents"), right: "zones.view" },
       { to: "/admin/telephones", label: tx("Téléphones"), right: "zones.view" },
       { to: "/admin/utilisateurs", label: tx("Utilisateurs"), right: "users.manage" },
+      { to: "/admin/configuration", label: tx("Configuration"), right: "system.config" },
     ],
   },
   {

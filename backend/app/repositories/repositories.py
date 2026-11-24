@@ -17,6 +17,7 @@ from app.models import (
     Device,
     Employee,
     Entity,
+    RefreshToken,
     Role,
     Unit,
     User,
@@ -463,6 +464,32 @@ class RoleRepository(BaseRepository[Role]):
 
     def by_name(self, name: str) -> Role | None:
         return self._session.scalar(select(Role).where(Role.name == name))
+
+
+class RefreshTokenRepository(BaseRepository[RefreshToken]):
+    model = RefreshToken
+
+    def by_hash(self, token_hash: str) -> RefreshToken | None:
+        return self._session.scalar(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
+
+    def revoke_family(self, family: str, when: datetime) -> int:
+        """End one session: every token of the family still valid. Returns how many were stopped."""
+        rows = self._session.scalars(select(RefreshToken).where(RefreshToken.family == family,
+                                                                RefreshToken.revoked_at.is_(None))).all()
+        for row in rows:
+            row.revoked_at = when
+        self._session.flush()
+        return len(rows)
+
+    def revoke_user(self, user_id: int, when: datetime) -> None:
+        for row in self._session.scalars(select(RefreshToken).where(RefreshToken.user_id == user_id,
+                                                                    RefreshToken.revoked_at.is_(None))):
+            row.revoked_at = when
+        self._session.flush()
+
+    def commit_now(self) -> None:
+        """Keep a revocation although the request then fails (a reused token stops its session)."""
+        self._session.commit()
 
 
 class UserRepository(BaseRepository[User]):

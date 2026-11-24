@@ -11,7 +11,10 @@ class Settings(BaseSettings):
     # Behind Nginx: read the client IP from X-Forwarded-For (audit). Leave false when exposed directly.
     trust_proxy_headers: bool = False
     jwt_secret: str = "change-me-in-production"
-    access_token_minutes: int = 480
+    # Session (FR-01): short access token, renewed by a refresh token until the session ends.
+    # Both can be changed in the console (Paramétrage > Configuration, system.config).
+    access_token_minutes: int = 15
+    refresh_token_hours: int = 8
     timezone: str = "Africa/Douala"  # reports and exports display local time
 
     # Ed25519 private key (PEM) used to sign badge QR tokens.
