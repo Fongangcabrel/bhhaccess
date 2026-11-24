@@ -103,6 +103,7 @@ button, input, select { font: inherit; }
 .scan input { color: #fff; background: #263037; border: 1px solid #3b4851; border-radius: 8px; padding: .8rem; min-height: 48px; }
 .viewfinder { position: relative; flex: 1; min-height: 0; background: #000; overflow: hidden; }
 .viewfinder video { width: 100%; height: 100%; object-fit: cover; }
+.viewfinder .camera-tap { position: absolute; inset: 0; z-index: 2; width: 100%; border: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 1.15rem; font-weight: 600; padding: 1rem; }
 .frame { position: absolute; inset: 0; margin: auto; width: 66%; aspect-ratio: 1; max-height: 66%; border: 3px solid rgba(255,255,255,.9); border-radius: 14px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.38); }
 .manual { display: flex; gap: .5rem; padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom)); background: #222b31; }
 .manual input { flex: 1; min-width: 0; }

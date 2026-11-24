@@ -18,6 +18,10 @@ export function QrScanner({ active, onDetect }: Props) {
   const onDetectRef = useRef(onDetect);
   const activeRef = useRef(active);
   const [error, setError] = useState<string | null>(null);
+  // Safari can refuse to start the video on its own: the agent then taps the viewfinder once.
+  const [needsTap, setNeedsTap] = useState(false);
+  // Bumped to open the camera again (iOS stops it when the app goes to the background).
+  const [attempt, setAttempt] = useState(0);
 
   onDetectRef.current = onDetect;
   activeRef.current = active;
@@ -27,6 +31,28 @@ export function QrScanner({ active, onDetect }: Props) {
     let timer = 0;
     let stopped = false;
     let decoder: QrDecoder | null = null;
+
+    const resume = () => {
+      if (document.visibilityState !== "visible" || stopped) return;
+      const track = stream?.getVideoTracks()[0];
+      if (stream && track?.readyState !== "live") {
+        setAttempt((n) => n + 1); // camera taken away while hidden: open it again
+      } else {
+        void playVideo();
+      }
+    };
+    document.addEventListener("visibilitychange", resume);
+
+    async function playVideo() {
+      const video = videoRef.current;
+      if (!video || stopped) return;
+      try {
+        await video.play();
+        setNeedsTap(false);
+      } catch {
+        setNeedsTap(true);
+      }
+    }
 
     async function start() {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -44,9 +70,18 @@ export function QrScanner({ active, onDetect }: Props) {
         return;
       }
       const video = videoRef.current;
-      if (!video || stopped) return;
+      if (!video || stopped) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      // iOS Safari plays a camera stream only when the element really carries these attributes;
+      // React sets `muted` as a property only, so they are written here before the stream is attached.
+      video.muted = true;
+      video.setAttribute("muted", "");
+      video.setAttribute("playsinline", "");
+      video.setAttribute("autoplay", "");
       video.srcObject = stream;
-      await video.play().catch(() => undefined);
+      await playVideo();
       void enableContinuousFocus(stream);
       try {
         decoder = await decoderReady;
@@ -91,16 +126,26 @@ export function QrScanner({ active, onDetect }: Props) {
     return () => {
       stopped = true;
       window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", resume);
       stream?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [attempt]);
+
+  const tapToStart = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.play().then(() => setNeedsTap(false), () => setAttempt((n) => n + 1));
+  };
 
   if (error) return <p role="alert" className="error center">{error}</p>;
   return (
     <div className="viewfinder">
-      <video ref={videoRef} playsInline muted />
+      <video ref={videoRef} playsInline muted autoPlay />
       <canvas ref={canvasRef} hidden />
       <div className="frame" aria-hidden />
+      {needsTap && (
+        <button type="button" className="camera-tap" onClick={tapToStart}>{t("camera.tap")}</button>
+      )}
     </div>
   );
 }

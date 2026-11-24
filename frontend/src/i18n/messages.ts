@@ -47,6 +47,7 @@ export const fr = {
   "camera.https": "Caméra indisponible (HTTPS requis).",
   "camera.denied": "Accès à la caméra refusé. Autorisez-le dans le navigateur.",
   "camera.reader": "Lecteur de QR indisponible. Utilisez la saisie du matricule.",
+  "camera.tap": "Touchez ici pour activer la caméra",
   // --- result
   "result.doubleEntry": "⚠ Double entrée détectée : la personne n'est pas ressortie",
   "result.lastEntry": "Entrée enregistrée à",
@@ -102,6 +103,7 @@ export const en: Record<MessageKey, string> = {
   "camera.https": "Camera unavailable (HTTPS required).",
   "camera.denied": "Camera access denied. Allow it in the browser.",
   "camera.reader": "QR reader unavailable. Type the employee number instead.",
+  "camera.tap": "Tap here to turn the camera on",
   "result.doubleEntry": "⚠ Double entry detected: the person did not go out",
   "result.lastEntry": "Entry recorded at",
   "result.tap": "Tap to continue",
