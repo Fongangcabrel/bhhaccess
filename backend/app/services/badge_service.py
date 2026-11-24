@@ -83,8 +83,19 @@ class BadgeService:
         return badge
 
     def qr_token(self, badge_id: int) -> str:
+        """QR of the badge, signed with the active key; the badge remembers that key (reprint follow-up)."""
         badge = self.get(badge_id)
+        badge.qr_key_id = self._signer.key_id
         return self._signer.sign(badge.id, badge.version, badge.issued_at)
+
+    def qr_keys(self) -> dict:
+        """Accepted QR keys and how many active badges still carry each one (tâche 43)."""
+        counts = self._badges.count_active_by_key()
+        accepted = self._signer.key_ids()
+        keys = [{"key_id": kid, "active": kid == self._signer.key_id, "badges": counts.get(kid, 0)}
+                for kid in accepted]
+        unknown = sum(n for kid, n in counts.items() if kid is not None and kid not in accepted)
+        return {"keys": keys, "untracked": counts.get(None, 0), "unknown_key": unknown}
 
     def matricule_of(self, badge: Badge) -> str:
         return self._employees.get(badge.employee_id).matricule

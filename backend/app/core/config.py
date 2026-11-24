@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # When empty, a local dev key file is created and reused (development only).
     qr_private_key_pem: str = ""
     qr_dev_key_path: str = ".qr_dev_key.pem"  # used only when qr_private_key_pem is empty
+    # Former QR keys (PEM blocks, private or public, one after the other): still accepted at the
+    # scan so that badges printed before a key change keep working until they are reprinted.
+    qr_previous_keys_pem: str = ""
     qr_issuer: str = "bhhaccess"
     qr_logo_path: str = "assets/logo.png"
 

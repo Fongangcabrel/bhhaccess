@@ -102,6 +102,10 @@ ROUTES: dict[str, tuple[str, str, str]] = {
     "PATCH /api/settings": ("Utilisateurs", "Modifier la configuration",
         "`{\"values\": {\"session.access_minutes\": 10}}` ; `null` remet la valeur d'installation. Tout est "
         "vérifié avant d'enregistrer ; le changement est tracé dans l'audit et s'applique tout de suite."),
+    "GET /api/qr-keys": ("Utilisateurs", "Clés de signature des QR",
+        "Clés acceptées au scan (la première signe les nouveaux QR) et, pour chacune, le nombre de badges actifs "
+        "dont le dernier QR a été produit avec elle. `untracked` : QR produits avant le suivi des clés ; "
+        "`unknown_key` : badges imprimés avec une clé retirée, à réimprimer."),
     "GET /api/auth/me": ("Connexion", "Mon compte", "Nom, rôle et droits effectifs de la personne connectée."),
     "POST /api/auth/password": ("Connexion", "Changer mon mot de passe",
         "Renvoie une nouvelle session ; les autres sessions de la personne s'arrêtent. "

@@ -43,6 +43,7 @@ import type {
   Schedule,
   SessionTokens,
   SystemSetting,
+  QrKeys,
   Stats,
   TravelTime,
   Unit,
@@ -229,6 +230,7 @@ export class AdminApi {
   settings() { return this.c.get<SystemSetting[]>("/settings"); }
   /** null puts a setting back to its installation default. */
   updateSettings(values: Record<string, number | null>) { return this.c.patch<SystemSetting[]>("/settings", { values }); }
+  qrKeys() { return this.c.get<QrKeys>("/qr-keys"); }
   // reports over a period (movements, presence by zone, refusal trends)
   movementReport(filters: ReportFilters) { return this.c.get<MovementReport>(`/reports/movements${query(filters)}`); }
   presenceReport(filters: ReportFilters) { return this.c.get<PresenceReport>(`/reports/presence${query(filters)}`); }

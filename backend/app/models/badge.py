@@ -32,3 +32,5 @@ class Badge(Base):
     revoked_note: Mapped[str | None] = mapped_column(String(300))
     revoked_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     expires_at: Mapped[datetime | None] = mapped_column(UtcDateTime)
+    # Key of the last QR produced for this badge (None: produced before key ids, tâche 43).
+    qr_key_id: Mapped[str | None] = mapped_column(String(8))

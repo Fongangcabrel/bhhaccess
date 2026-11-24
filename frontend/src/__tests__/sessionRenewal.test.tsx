@@ -48,7 +48,14 @@ const settings: SystemSetting[] = [
   { key: "alerts.burst_count", group: "Alertes", label: "Rafale : nombre de scans d'un badge", unit: "scans",
     minimum: 2, maximum: 100, default: 5, value: 4, customised: true },
 ];
-const admin = { settings: vi.fn(async () => settings), updateSettings: vi.fn(async () => settings) };
+const qrKeys = {
+  keys: [{ key_id: "C09C", active: true, badges: 3 }, { key_id: "7A21", active: false, badges: 2 }],
+  untracked: 4, unknown_key: 0,
+};
+const admin = {
+  settings: vi.fn(async () => settings), updateSettings: vi.fn(async () => settings),
+  qrKeys: vi.fn(async () => qrKeys),
+};
 vi.mock("../auth/AuthContext", () => ({ useAuth: () => ({ admin, can: () => true }) }));
 
 import { ConfigPage } from "../admin/pages/ConfigPage";
@@ -67,5 +74,14 @@ describe("Configuration screen", () => {
     expect(screen.getByText(/Valeur d'installation : 5 scans/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Rétablir" }));  // only the customised one has it
     await vi.waitFor(() => expect(admin.updateSettings).toHaveBeenLastCalledWith({ "alerts.burst_count": null }));
+  });
+
+  it("shows the QR keys and how many badges still carry each one", async () => {
+    render(<ConfigPage />);
+    expect(await screen.findByText("C09C")).toBeInTheDocument();
+    expect(screen.getByText("Active : signe les nouveaux QR")).toBeInTheDocument();
+    expect(screen.getByText("Ancienne : encore acceptée au scan")).toBeInTheDocument();
+    expect(screen.getByText(/4 badge\(s\) actif\(s\) imprimé\(s\) avant le suivi des clés/)).toBeInTheDocument();
+    expect(screen.queryByText(/clé retirée/)).not.toBeInTheDocument();
   });
 });

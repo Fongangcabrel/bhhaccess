@@ -56,7 +56,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     # Installation defaults of the settings changed in the console (sessions, alert thresholds).
     app.state.setting_defaults = defaults_from(settings)
     qr_key = settings.qr_private_key_pem or load_or_create_dev_key(settings.qr_dev_key_path)
-    app.state.signer = Ed25519TokenSigner(qr_key, settings.qr_issuer)
+    app.state.signer = Ed25519TokenSigner(qr_key, settings.qr_issuer, settings.qr_previous_keys_pem)
     app.state.engine = build_default_engine()
     app.state.qr_renderer = QrImageRenderer(settings.qr_logo_path)
     app.state.pairing_limiter = FailureLimiter(clock)

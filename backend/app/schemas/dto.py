@@ -151,6 +151,19 @@ class BadgeOut(_Out):
     revoked_at: datetime | None = None
     revoked_reason: RevocationReason | None = None
     revoked_note: str | None = None
+    qr_key_id: str | None = None  # key of the last QR produced (None: before key ids)
+
+
+class QrKeyOut(BaseModel):
+    key_id: str
+    active: bool  # signs new QR codes; the others are only accepted at the scan
+    badges: int  # active badges whose last QR was produced with this key
+
+
+class QrKeysOut(BaseModel):
+    keys: list[QrKeyOut]
+    untracked: int  # active badges whose QR was produced before key ids (key unknown)
+    unknown_key: int  # active badges printed with a key no longer accepted: to reprint at once
 
 
 class QrTokenOut(BaseModel):

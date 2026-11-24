@@ -32,11 +32,14 @@ def qr_version(data: str) -> int:
 
 def test_compact_token_round_trip_and_size(signer):
     token = signer.sign(123456, 7, NOW)
-    assert token.startswith("B1") and len(token) == 114
+    assert token.startswith("B2") and len(token) == 118  # with the key id (tâche 43)
     assert token == token.upper()  # QR alphanumeric mode
     claims = signer.verify(token)
     assert (claims.badge_id, claims.version) == (123456, 7)
     assert qr_version(token) <= 8 < qr_version(signer.sign_jwt(123456, 7, NOW))
+    old = signer.sign_compact(123456, 7, NOW)  # B1, printed before tâche 43
+    assert old.startswith("B1") and len(old) == 114
+    assert (signer.verify(old).badge_id, signer.verify(old).version) == (123456, 7)
 
 
 def test_old_jwt_badges_still_read(signer):
@@ -47,9 +50,10 @@ def test_old_jwt_badges_still_read(signer):
 def test_tampered_compact_token_is_refused(signer):
     token = signer.sign(42, 1, NOW)
     raw = bytearray(base64.b32decode(token[2:] + "=" * (-len(token[2:]) % 8)))
-    raw[1] ^= 0x01  # change the badge id, keep the signature
-    forged = "B1" + base64.b32encode(bytes(raw)).decode().rstrip("=")
-    for bad in (forged, token[:-1], token + "A", "B1" + "A" * 112, "B1" + "!" * 112, "B1", ""):
+    raw[3] ^= 0x01  # change the badge id (after the 2-byte key id), keep the signature
+    forged = "B2" + base64.b32encode(bytes(raw)).decode().rstrip("=")
+    for bad in (forged, token[:-1], token + "A", "B1" + "A" * 112, "B1" + "!" * 112, "B2" + "A" * 116,
+                "B2" + "!" * 116, "B1", "B2", ""):
         with pytest.raises(InvalidTokenError):
             signer.verify(bad)
 
@@ -65,10 +69,14 @@ def test_other_key_or_issuer_is_refused():
 
 def test_scan_reads_both_formats(client, agent, admin, world, app):
     signer = app.state.signer
-    assert world["token"].startswith("B1")  # badges issued now are compact
-    old = signer.sign_jwt(world["badge"]["id"], world["badge"]["version"], NOW)
-    response = client.post("/api/scan", headers=agent, json={"checkpoint_id": world["entry"]["id"], "token": old})
-    assert response.json()["verdict"] == "AUTORISE"
+    assert world["token"].startswith("B2")  # QR printed now carry the key id
+    badge_id, version = world["badge"]["id"], world["badge"]["version"]
+    for old, checkpoint, verdict in ((signer.sign_jwt(badge_id, version, NOW), "entry", "AUTORISE"),
+                                     (signer.sign_compact(badge_id, version, NOW), "exit", "SORTIE_ENREGISTREE")):
+        response = client.post("/api/scan", headers=agent, json={"checkpoint_id": world[checkpoint]["id"],
+                                                                  "token": old})
+        assert response.json()["verdict"] == verdict
+        app.state.clock.advance(seconds=4)
 
 
 def test_qr_image_uses_the_compact_token(client, admin, world):

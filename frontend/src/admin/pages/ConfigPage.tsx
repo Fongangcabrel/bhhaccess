@@ -80,6 +80,43 @@ export function ConfigPage() {
           </div>
         )}
       </form>
+      <QrKeysPanel />
     </>
+  );
+}
+
+/** Keys that sign the badge QR codes: which one is active, how many badges each one still carries. */
+function QrKeysPanel() {
+  const { admin } = useAuth();
+  const keys = useAsync(() => admin.qrKeys(), []);
+  const data = keys.data;
+  return (
+    <section className="panel">
+      <h2 className="panel-title flat">{tx("Clés de signature des QR")}</h2>
+      <p className="muted">
+        {tx("Pour changer de clé : la nouvelle devient la clé active, l'ancienne reste acceptée au scan le temps de réimprimer les badges, puis on la retire de la configuration du serveur.")}
+      </p>
+      <ErrorNote message={keys.error} />
+      {data && (
+        <table className="cards">
+          <thead><tr><th>{tx("Clé")}</th><th>{tx("Rôle")}</th><th>{tx("Badges actifs imprimés avec cette clé")}</th></tr></thead>
+          <tbody>
+            {data.keys.map((k) => (
+              <tr key={k.key_id}>
+                <td><code>{k.key_id}</code></td>
+                <td>{k.active ? tx("Active : signe les nouveaux QR") : tx("Ancienne : encore acceptée au scan")}</td>
+                <td>{k.badges}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {!!data?.untracked && (
+        <p className="muted">{tx("{0} badge(s) actif(s) imprimé(s) avant le suivi des clés : réimprimez-les avant de retirer une clé.", [data.untracked])}</p>
+      )}
+      {!!data?.unknown_key && (
+        <p className="error">{tx("{0} badge(s) actif(s) imprimé(s) avec une clé retirée : ils sont refusés au scan, réimprimez-les.", [data.unknown_key])}</p>
+      )}
+    </section>
   );
 }

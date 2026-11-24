@@ -30,7 +30,8 @@ def test_every_error_message_has_an_english_text():
 
     from app.core.i18n import tr
 
-    internal = {"QR key must be an Ed25519 private key", "badge id or version out of range for the compact QR",
+    internal = {"QR key must be an Ed25519 private key", "QR key must be an Ed25519 key",  # start-up only
+                "badge id or version out of range for the compact QR",
                 "naive datetime not allowed"}
     missing = []
     for path in pathlib.Path("app").rglob("*.py"):

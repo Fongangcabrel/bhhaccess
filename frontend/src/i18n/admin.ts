@@ -708,4 +708,16 @@ export const ADMIN_EN: Record<string, string> = {
   "Valeur d'installation : {0} {1}": "Installation value: {0} {1}",
   // --- Comptes super admin (tâche 39)
   "Réservé aux super admins": "Reserved to super admins",
+  // --- Clés de signature des QR (tâche 43)
+  "Clés de signature des QR": "QR signing keys",
+  "Pour changer de clé : la nouvelle devient la clé active, l'ancienne reste acceptée au scan le temps de réimprimer les badges, puis on la retire de la configuration du serveur.":
+    "To change keys: the new one becomes the active key, the former one stays accepted at the scan while badges are reprinted, then it is removed from the server configuration.",
+  "Clé": "Key",
+  "Badges actifs imprimés avec cette clé": "Active badges printed with this key",
+  "Active : signe les nouveaux QR": "Active: signs new QR codes",
+  "Ancienne : encore acceptée au scan": "Former: still accepted at the scan",
+  "{0} badge(s) actif(s) imprimé(s) avant le suivi des clés : réimprimez-les avant de retirer une clé.":
+    "{0} active badge(s) printed before keys were followed: reprint them before removing a key.",
+  "{0} badge(s) actif(s) imprimé(s) avec une clé retirée : ils sont refusés au scan, réimprimez-les.":
+    "{0} active badge(s) printed with a removed key: they are refused at the scan, reprint them.",
 };

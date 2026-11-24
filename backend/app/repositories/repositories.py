@@ -114,6 +114,11 @@ class BadgeRepository(BaseRepository[Badge]):
         stmt = select(Badge).where(Badge.employee_id == employee_id, Badge.status == BadgeStatus.ACTIVE)
         return list(self._session.scalars(stmt))
 
+    def count_active_by_key(self) -> dict[str | None, int]:
+        stmt = select(Badge.qr_key_id, func.count()).where(Badge.status == BadgeStatus.ACTIVE).group_by(
+            Badge.qr_key_id)
+        return dict(self._session.execute(stmt).tuples().all())
+
     def latest_version(self, employee_id: int) -> int:
         stmt = select(Badge.version).where(Badge.employee_id == employee_id).order_by(
             Badge.version.desc()

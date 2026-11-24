@@ -269,6 +269,8 @@ export interface Badge {
   revoked_at?: string | null;
   revoked_reason?: RevocationReason | null;
   revoked_note?: string | null;
+  /** Key of the last QR produced (null: before key ids). */
+  qr_key_id?: string | null;
 }
 
 /** Why a badge stopped working. REMPLACEMENT is set by the server on re-issue only. */
@@ -678,4 +680,13 @@ export interface SystemSetting {
   value: number;
   /** Changed in the console (differs from the installation value). */
   customised: boolean;
+}
+
+/** QR signing keys accepted at the scan (the active one signs new prints). */
+export interface QrKeys {
+  keys: { key_id: string; active: boolean; badges: number }[];
+  /** Active badges whose QR was produced before key ids were followed. */
+  untracked: number;
+  /** Active badges printed with a key no longer accepted: to reprint. */
+  unknown_key: number;
 }
