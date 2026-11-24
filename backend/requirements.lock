@@ -1,0 +1,43 @@
+# Exact versions of the runtime dependencies (constraints for `pip install -c`), the ones the tests
+# pass with. The list of what to install stays in pyproject.toml; this file only fixes the versions.
+# Update: install the new versions in .venv, run the tests, then regenerate this file from .venv.
+alembic==1.20.1
+annotated-doc==0.0.6
+annotated-types==0.8.0
+anyio==4.16.0
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
+cffi==2.1.1
+charset-normalizer==3.5.2
+click==8.5.1
+cryptography==50.0.2
+et-xmlfile==2.0.0
+fastapi==0.162.4
+h11==0.16.0
+httptools==0.9.0
+idna==3.20
+mako==1.4.3
+markupsafe==3.0.4
+openpyxl==3.1.5
+opentelemetry-api==1.45.2
+pillow==13.0.0
+psycopg2-binary==2.9.13
+pycparser==3.12
+pydantic==2.14.3
+pydantic-core==2.50.4
+pydantic-settings==2.16.2
+pyjwt==2.15.1
+python-dotenv==1.2.4
+python-multipart==0.0.33
+pyyaml==6.0.3
+qrcode==8.2
+reportlab==5.1.0
+sqlalchemy==2.1.8
+starlette==1.10.0
+typing-extensions==4.16.0
+typing-inspection==0.4.5
+tzdata==2026.6
+uvicorn==0.54.0
+watchfiles==1.3.0
+websockets==17.4
+# uvloop (Linux only, pulled by uvicorn[standard]) is not pinned: it is not installed on the Windows dev PCs.

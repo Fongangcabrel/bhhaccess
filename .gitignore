@@ -17,3 +17,8 @@ dev-dist/
 *.log
 *.pem
 *.key
+
+# Docker deployment: certificate and backups stay on the server
+deploy/certs/*
+!deploy/certs/README.md
+backups/

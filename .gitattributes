@@ -1,0 +1,5 @@
+# Shell scripts and Nginx templates run in Linux containers: always LF.
+*.sh text eol=lf
+*.template text eol=lf
+docker-compose.yml text eol=lf
+Dockerfile text eol=lf

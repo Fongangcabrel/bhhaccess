@@ -1,0 +1,53 @@
+# BHH Access - Nginx inside Docker Compose (service "web").
+# ${BHH_SERVER_NAME} comes from .env; the other $variables are Nginx's own.
+# Certificate: deploy/certs/server.crt (full chain) and deploy/certs/server.key, issued by an
+# authority the phones trust (company authority deployed on the phones): the camera needs HTTPS.
+
+server {
+    listen 80;
+    server_name ${BHH_SERVER_NAME};
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name ${BHH_SERVER_NAME};
+
+    ssl_certificate     /etc/nginx/certs/server.crt;
+    ssl_certificate_key /etc/nginx/certs/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    # Security headers (the camera is used by the agent app on this origin only).
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+    add_header Permissions-Policy "camera=(self), microphone=(), geolocation=()" always;
+
+    client_max_body_size 5m;   # photos and Excel imports
+
+    # --- API (container "api", never exposed directly) -----------------------------------
+    location /api/ {
+        proxy_pass http://api:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $remote_addr;   # real IP in the audit (BHH_TRUST_PROXY_HEADERS=true)
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 60s;
+    }
+    location = /health { proxy_pass http://api:8000; access_log off; }   # supervision
+
+    # --- PWA ---------------------------------------------------------------------------
+    root /usr/share/nginx/html;
+
+    # Never cache the service worker and the manifest: updates reach the phones at once.
+    location = /sw.js                  { add_header Cache-Control "no-cache" always; try_files $uri =404; }
+    location = /manifest.webmanifest   { add_header Cache-Control "no-cache" always; default_type application/manifest+json; try_files $uri =404; }
+    location = /index.html             { add_header Cache-Control "no-cache" always; }
+
+    # Hashed assets: cached for a year.
+    location /assets/ { add_header Cache-Control "public, max-age=31536000, immutable" always; try_files $uri =404; }
+
+    location ~* \.wasm$ { default_type application/wasm; try_files $uri =404; }
+
+    # Client-side routes (/admin/..., /pair/<code>) all load the app.
+    location / { try_files $uri /index.html; }
+}

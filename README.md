@@ -19,7 +19,7 @@ Unité ──< Zone ──< Poste de contrôle (entrée ou sortie) ──< Affec
 - **Agents** (facultatif) : renseignés par le super user et placés à un poste ; l'historique des affectations est conservé. Chaque passage du journal enregistre l'unité, la zone, le poste, le téléphone et l'**agent au poste à ce moment** (nom figé, il survit à un renommage). Filtres et export CSV par unité et par agent.
 
 ```bash
-cd frontend && npm install && npm test && npm run build   # 115 tests
+cd frontend && npm install && npm test && npm run build   # 116 tests
 npm run dev                                               # http://localhost:5173, proxy /api -> localhost:8001
 ```
 
@@ -56,7 +56,8 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ## Règles de conception
 
 - Une **sortie n'est jamais refusée** : les mêmes règles ne lèvent que des *drapeaux*.
-- Le QR est un JWT Ed25519 **sans donnée personnelle** ; `version` du badge incrémentée à la réémission = ancien QR mort.
+- Le QR est signé Ed25519 **sans donnée personnelle** (format compact `B2` : identifiant de clé + badge + version + signature, 118 caractères, QR version 8) ; `version` du badge incrémentée à la réémission = ancien QR mort. Les formats précédents (`B1`, JWT) restent lus.
+- **Changer la clé des QR** : nouvelle clé dans `BHH_QR_PRIVATE_KEY_PEM`, ancienne dans `BHH_QR_PREVIOUS_KEYS_PEM` (encore acceptée au scan). Paramétrage ▸ Configuration montre, pour chaque clé, combien de badges actifs restent imprimés avec elle ; une fois tout réimprimé, on vide `BHH_QR_PREVIOUS_KEYS_PEM`.
 - Les droits sont évalués **côté serveur à chaque requête** : rôle + exceptions par personne.
 - Journal **immuable** (purge seulement, tracée) ; audit **jamais supprimable**.
 
@@ -65,12 +66,12 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest                                          # 249 tests (SQLite en mémoire)
+pytest                                          # 254 tests (SQLite en mémoire)
 # même suite sur un vrai PostgreSQL (schéma via Alembic) :
 BHH_TEST_DATABASE_URL=postgresql+psycopg2://user@host/db pytest   # + la course concurrente
-alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0017)
+alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0018)
 uvicorn app.main:create_app --factory --reload --port 8001  # http://localhost:8001/docs
-# production : cp .env.example .env && docker compose up --build   (alembic upgrade head au démarrage)
+# production : voir « Mise en production (Docker Compose) » plus bas
 ```
 
 Compte initial : variables `BHH_INITIAL_ADMIN_*`. Sessions du back-office : jeton d'accès de `BHH_ACCESS_TOKEN_MINUTES` (15) renouvelé par un jeton à usage unique jusqu'à `BHH_REFRESH_TOKEN_HOURS` (8) ; ces durées et les seuils d'alerte se règlent aussi dans Paramétrage ▸ Configuration (`system.config`). Migrations : `alembic revision --autogenerate -m "..."`.
@@ -98,7 +99,33 @@ scan caméra (décodeur natif ou ZXing WebAssembly) et saisie manuelle (matricul
 tableau de bord de supervision (présents / sortis par unité et zone, postes, refus) · journal filtrable + purge filtrée (période, employé, département, entité, zone) avec aperçu et confirmation, photos supprimables en lot ·
 alertes d'usage suspect (même badge à deux postes trop vite selon le temps de trajet minimum, badge révoqué ou d'un employé archivé présenté, hors horaires, rafales, refus répétés), écran Rapport ▸ Alertes avec prise en compte individuelle ou groupée et révocation du badge · réglage des temps de trajet dans Paramétrage ▸ Réglage de distance · annonce vocale au poste (« Entrée autorisée, Jean Mbarga », refus, alerte), activée ou coupée par téléphone, et des nouvelles alertes au back-office · application en français ou en anglais (sélecteur FR | EN sur le téléphone, à la connexion et dans Général ▸ Identifiant ; textes du back-office dans frontend/src/i18n/admin.ts, messages du serveur dans backend/app/core/i18n.py, des tests signalent tout texte sans traduction ; journal, audit et exports restent en français) · rapports (Rapport ▸ Rapports, droit `reports.view`) : mouvements par employé et par zone (entrées, sorties, refus, déblocages comptés à part, premier et dernier passage), présence par zone (à l'intérieur maintenant, personnes entrées), tendances des refus (par jour, par motif, par zone, personnes les plus refusées, comparaison avec la période précédente ; 30 jours par défaut, 366 max), filtrables par période, entité, département, unité, zone et employé, exports Excel et PDF · sélection de passages dans le Journal pour exporter uniquement les lignes cochées en Excel ou PDF · exports Excel et PDF (journal, audit, employés) audités · écran d'audit (auteur, adresse IP, avant → après, filtres) jamais modifiable.
 
-Derrière Nginx, mettre `BHH_TRUST_PROXY_HEADERS=true` pour que l'audit enregistre l'adresse réelle du poste (en-tête `X-Forwarded-For`) ; laisser `false` si l'API est exposée directement.
+Derrière Nginx, mettre `BHH_TRUST_PROXY_HEADERS=true` pour que l'audit enregistre l'adresse réelle du poste (en-tête `X-Forwarded-For`) ; laisser `false` si l'API est exposée directement (le `docker-compose.yml` le met déjà).
+
+## Mise en production (Docker Compose)
+
+Une VM, quatre conteneurs : `web` (Nginx : HTTPS, application compilée, renvoi de `/api` et `/health`), `api` (FastAPI, jamais exposée directement), `db` (PostgreSQL 16) et `backup` (sauvegarde quotidienne).
+
+```bash
+cp .env.example .env          # mots de passe, BHH_JWT_SECRET, BHH_QR_PRIVATE_KEY_PEM, BHH_SERVER_NAME
+# certificat du serveur : deploy/certs/server.crt (chaîne complète) + deploy/certs/server.key
+docker compose up -d --build  # les migrations s'appliquent au démarrage de l'API
+docker compose ps             # api « healthy » (route /health) avant que web démarre
+```
+
+- **Image de l'API** : la liste des dépendances vient de `backend/pyproject.toml` (une seule liste) et les versions exactes de `backend/requirements.lock`, celles avec lesquelles les tests passent. Python 3.14 comme en développement. Les fichiers locaux (`.env`, clés `.pem`, `data/`, tests) n'entrent pas dans l'image (`backend/.dockerignore`).
+- **Nginx** : configuration dans `deploy/nginx/bhhaccess.conf.template` (montée, modifiable sans reconstruire : `docker compose restart web`).
+- **Sauvegarde** (`deploy/backup/backup.sh`) : chaque jour à `BACKUP_TIME` (02:00, heure du site), la base (`pg_dump`, format personnalisé) et les photos (`tar.gz`) vont dans `BACKUP_DIR` (`./backups`), conservées `BACKUP_KEEP_DAYS` jours (14). Un fichier n'apparaît sous son nom définitif qu'une fois complet. Ce dossier est à copier hors de la VM (partage réseau, rsync). La clé de signature des QR (`.env`) se sauvegarde à part, dans un coffre.
+  - sauvegarde immédiate : `docker compose run --rm backup sh /usr/local/bin/backup.sh now`
+  - journal : `docker compose logs backup`
+- **Restauration** (à tester une fois par mois sur une VM de test) :
+
+```bash
+docker compose stop api web
+docker compose exec -T db pg_restore -U bhh -d bhhaccess --clean --if-exists < backups/bhhaccess-AAAAMMJJ-HHMM.dump
+docker compose run --rm --no-deps -v ./backups:/restore --entrypoint sh api \
+  -c "rm -rf /data/photos/* && tar -xzf /restore/bhhaccess-AAAAMMJJ-HHMM-photos.tar.gz -C /data"
+docker compose start api web
+```
 
 ## Concurrence
 

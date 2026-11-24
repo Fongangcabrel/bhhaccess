@@ -1,0 +1,16 @@
+# Never in the image: local secrets and keys, development data, tests, caches.
+.env
+*.pem
+*.key
+.qr_dev_key.pem
+.venv/
+data/
+demo-badges/
+tests/
+scripts/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+*.db
