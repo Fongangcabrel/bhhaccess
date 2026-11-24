@@ -7,8 +7,13 @@ const roles: Role[] = [
   { id: 7, name: "chef", label: "Chef de quart", permissions: ["logs.view"], is_template: false, users: 0 },
   { id: 8, name: "lecteurs", label: "Lecteurs", permissions: [], is_template: false, users: 3 },
 ];
+const accounts = [
+  { id: 1, username: "admin", full_name: "Admin", role_id: 1, is_active: true, must_change_password: false, overrides: [] },
+  { id: 2, username: "rh1", full_name: "RH Un", role_id: 3, is_active: true, must_change_password: false, overrides: [] },
+];
 const admin = {
-  users: vi.fn(async () => []),
+  users: vi.fn(async () => accounts),
+  setUserActive: vi.fn(async () => ({})),
   roles: vi.fn(async () => roles),
   updateRole: vi.fn(async () => ({})),
   createRole: vi.fn(async () => ({})),
@@ -16,8 +21,9 @@ const admin = {
   deleteRole: vi.fn(async () => ({})),
 };
 let rights = ["roles.assign", "roles.manage", "logs.view"];
+let myRole = "super_admin";
 vi.mock("../auth/AuthContext", () => ({
-  useAuth: () => ({ admin, can: (r: string) => rights.includes(r), user: { id: 1 } }),
+  useAuth: () => ({ admin, can: (r: string) => rights.includes(r), user: { id: 9, role: myRole } }),
 }));
 
 import { UsersPage } from "../admin/pages/UsersPage";
@@ -25,6 +31,7 @@ import { UsersPage } from "../admin/pages/UsersPage";
 beforeEach(() => {
   vi.clearAllMocks();
   rights = ["roles.assign", "roles.manage", "logs.view"];
+  myRole = "super_admin";
   vi.stubGlobal("confirm", vi.fn(() => true));
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -69,4 +76,14 @@ it("without roles.manage: no creation, no renaming", async () => {
   const table = await openRoles();
   expect(screen.queryByRole("button", { name: "+ Nouveau rôle" })).not.toBeInTheDocument();
   expect(within(table).queryByRole("button", { name: /Renommer le rôle/ })).not.toBeInTheDocument();
+});
+
+it("only a super admin sees the actions on a super admin account", async () => {
+  myRole = "super_user";
+  render(<UsersPage />);
+  const adminRow = (await screen.findByText("admin")).closest("tr")!;
+  expect(within(adminRow).getByText("Réservé aux super admins")).toBeInTheDocument();
+  expect(within(adminRow).queryByRole("button", { name: "Désactiver" })).not.toBeInTheDocument();
+  const rhRow = screen.getByText("rh1").closest("tr")!;
+  expect(within(rhRow).getByRole("button", { name: "Désactiver" })).toBeInTheDocument();
 });

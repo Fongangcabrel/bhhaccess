@@ -47,6 +47,7 @@ class UserService:
     def set_active(self, actor: User, user_id: int, active: bool) -> User:
         user = self._require_user(user_id)
         self._forbid_self(actor, user)
+        self._forbid_above(actor, user)
         if not active:
             self._forbid_last_super_admin(user)
         was, user.is_active = user.is_active, active
@@ -58,6 +59,7 @@ class UserService:
         user = self._require_user(user_id)
         role = self._require_role(role_id)
         self._forbid_self(actor, user)
+        self._forbid_above(actor, user)
         self._guard_role_grant(actor, role)
         if role.name != SUPER_ADMIN:
             self._forbid_last_super_admin(user)
@@ -70,6 +72,7 @@ class UserService:
         user = self._require_user(user_id)
         if actor.id == user.id:
             raise ForbiddenError("Utilisez « Changer mon mot de passe » pour votre propre compte")
+        self._forbid_above(actor, user)
         check_password_policy(new_password, user.username)
         user.password_hash = hash_password(new_password)
         user.must_change_password = True
@@ -82,6 +85,7 @@ class UserService:
     def set_override(self, actor: User, user_id: int, permission: Permission, effect: OverrideEffect) -> User:
         user = self._require_user(user_id)
         self._forbid_self(actor, user)
+        self._forbid_above(actor, user)
         if effect == OverrideEffect.ALLOW and permission not in PermissionService.effective(actor):
             raise ForbiddenError("Vous ne pouvez pas accorder un droit que vous n'avez pas")
         existing = next((o for o in user.overrides if o.permission == permission.value), None)
@@ -97,6 +101,7 @@ class UserService:
     def clear_override(self, actor: User, user_id: int, permission: Permission) -> User:
         user = self._require_user(user_id)
         self._forbid_self(actor, user)
+        self._forbid_above(actor, user)
         was = next((o.effect.value for o in user.overrides if o.permission == permission.value), None)
         user.overrides[:] = [o for o in user.overrides if o.permission != permission.value]
         self._audit.record(actor.id, "user.override.clear", user.username, permission=permission.value,
@@ -163,6 +168,12 @@ class UserService:
     def _forbid_self(actor: User, target: User) -> None:
         if actor.id == target.id:
             raise ForbiddenError("Vous ne pouvez pas modifier vos propres droits")
+
+    @staticmethod
+    def _forbid_above(actor: User, target: User) -> None:
+        """A super admin account is only handled by a super admin (deactivate, role, password, rights)."""
+        if target.role.name == SUPER_ADMIN and actor.role.name != SUPER_ADMIN:
+            raise ForbiddenError("Seul un super admin peut modifier le compte d'un super admin")
 
     def _forbid_last_super_admin(self, target: User) -> None:
         if target.role.name != SUPER_ADMIN:

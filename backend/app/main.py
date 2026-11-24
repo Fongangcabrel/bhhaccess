@@ -60,6 +60,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.engine = build_default_engine()
     app.state.qr_renderer = QrImageRenderer(settings.qr_logo_path)
     app.state.pairing_limiter = FailureLimiter(clock)
+    app.state.manual_limiter = FailureLimiter(clock, max_failures=5)  # typed matricules not found (per phone / agent)
     app.state.codec = SessionTokenCodec(settings.jwt_secret, settings.access_token_minutes, clock)
     app.state.photo_signer = PhotoUrlSigner(settings.jwt_secret, clock)
     app.state.photos_dir = settings.photos_dir

@@ -247,7 +247,9 @@ ROUTES: dict[str, tuple[str, str, str]] = {
         "En-tête `X-Device-Token`. Poste hors périmètre : `403`. Renvoie la décision, la photo, "
         "l'avertissement éventuel, la dernière entrée et l'alerte déclenchée (`alert`), à annoncer."),
     "POST /api/device/scan/manual": ("Téléphones", "Saisir un matricule (téléphone)",
-        "Quand le QR est abîmé. Même réponse que le scan ; méthode `MANUEL` au journal."),
+        "Quand le QR est abîmé. Même réponse que le scan ; méthode `MANUEL` au journal. Matricule inconnu, "
+        "sans badge actif ou archivé : « QR non reconnu » (`REFUSE_INVALIDE`) et une ligne au journal ; "
+        "5 échecs en 10 min : `429` pour ce téléphone."),
     "GET /api/devices": ("Téléphones", "Lister les téléphones", "Avec le résumé du périmètre."),
     "POST /api/devices": ("Téléphones", "Déclarer un téléphone", "Renvoie le code d'appairage à usage unique."),
     "POST /api/devices/{device_id}/code": ("Téléphones", "Nouveau code d'appairage",
@@ -292,7 +294,8 @@ ROUTES: dict[str, tuple[str, str, str]] = {
         "Renvoie la décision (`verdict`), la photo (sauf `REFUSE_INVALIDE`), l'avertissement éventuel "
         "et la dernière entrée. Les alertes sont calculées au passage, sans changer la décision."),
     "POST /api/scan/manual": ("Scan", "Saisir un matricule (agent connecté)",
-        "Quand le QR est abîmé ; méthode `MANUEL` au journal."),
+        "Quand le QR est abîmé ; méthode `MANUEL` au journal. Matricule inconnu ou sans badge actif : "
+        "`REFUSE_INVALIDE` journalisé ; 5 échecs en 10 min : `429` pour cet agent."),
     "POST /api/presence/unblock": ("Scan", "Débloquer une personne (console)",
         "Remet la présence à zéro pour une zone bloquée par l'anti-passback. Ligne `CONSOLE` au journal ; "
         "le passage suivant porte l'indicateur `DEBLOQUE`."),

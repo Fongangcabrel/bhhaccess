@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from app.core.clock import Clock
 from app.core.exceptions import ConflictError, InvalidTokenError, NotFoundError
+from app.core.rate_limit import FailureLimiter
 from app.domain import access_window
 from app.domain.enums import AntiPassbackMode, Direction, EmployeeStatus, Flag, ScanMethod, Verdict
 from app.domain.qr_token import TokenSigner
@@ -56,6 +57,8 @@ class ScanResult:
 REASON_BAD_SIGNATURE = "signature_invalide"
 REASON_UNKNOWN_BADGE = "badge_inconnu"
 REASON_ARCHIVED = "employe_archive"
+REASON_UNKNOWN_MATRICULE = "matricule_inconnu"
+REASON_NO_ACTIVE_BADGE = "aucun_badge_actif"
 MANUAL = "saisie manuelle"
 WARNING_DOUBLE_ENTRY = "DOUBLE_ENTREE"
 # Announced at the post, most serious first (EMPLOYE_ARCHIVE stays hidden from the agent).
@@ -75,8 +78,9 @@ class ScanService:
                  authorizations: AuthorizationRepository, presences: PresenceRepository,
                  logs: AccessLogRepository, assignments: AssignmentRepository, signer: TokenSigner,
                  engine: DecisionEngine, clock: Clock, timezone: str = "Africa/Douala",
-                 alerts: "AlertService | None" = None) -> None:
+                 alerts: "AlertService | None" = None, manual_limiter: FailureLimiter | None = None) -> None:
         self._alerts = alerts
+        self._manual_limiter = manual_limiter
         self._badges = badges
         self._employees = employees
         self._checkpoints = checkpoints
@@ -103,16 +107,32 @@ class ScanService:
         return self._process(source, checkpoint, badge, token_version=claims.version, method=ScanMethod.QR)
 
     def scan_manual(self, source: ScanSource, checkpoint_id: int, matricule: str) -> ScanResult:
-        """Fallback when the QR is damaged: the agent types the matricule."""
+        """Fallback when the QR is damaged: the agent types the matricule.
+
+        Unknown matricule, no active badge, archived person: one same answer (« QR non reconnu »), a
+        journal line with the real reason and what was typed, and a failure counted for this phone or
+        agent: after 5 in 10 minutes the typing is refused for a while (nobody tries matricules blind).
+        """
         checkpoint = self._require_checkpoint(checkpoint_id)
-        employee = self._employees.by_matricule(matricule.strip())
-        if employee is not None and employee.status == EmployeeStatus.ARCHIVED:
-            # Same answer as the archived person's QR: the agent learns nothing more.
-            return self._log_unreadable(source, checkpoint, f"{REASON_ARCHIVED} ({MANUAL})", employee_id=employee.id,
-                                        method=ScanMethod.MANUAL)
+        key = (f"manual:device:{source.device_id}" if source.device_id is not None
+               else f"manual:user:{source.operator_id}")
+        if self._manual_limiter is not None:
+            self._manual_limiter.check(key)
+        typed = matricule.strip()
+        employee = self._employees.by_matricule(typed)
         badge = self._badges.active_for_employee(employee.id) if employee else None
-        if badge is None:
-            raise NotFoundError("Aucun badge actif pour ce matricule")
+        refusal = None
+        if employee is not None and employee.status == EmployeeStatus.ARCHIVED:
+            refusal = REASON_ARCHIVED  # same answer as the archived person's QR: the agent learns nothing more
+        elif badge is None:
+            refusal = REASON_UNKNOWN_MATRICULE if employee is None else REASON_NO_ACTIVE_BADGE
+        if refusal is not None:
+            if self._manual_limiter is not None:
+                self._manual_limiter.fail(key)
+            # What was typed is kept for an unknown matricule; an archived person is already identified.
+            reason = f"{refusal} ({MANUAL})" if employee is not None else f"{refusal} ({MANUAL}) : {typed[:40]}"
+            return self._log_unreadable(source, checkpoint, reason,
+                                        employee_id=employee.id if employee else None, method=ScanMethod.MANUAL)
         return self._process(source, checkpoint, badge, token_version=badge.version, reason=MANUAL,
                              method=ScanMethod.MANUAL)
 

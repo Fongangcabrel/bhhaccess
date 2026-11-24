@@ -48,11 +48,12 @@ def test_cannot_edit_own_rights_or_remove_last_super_admin(client, admin):
     h2 = first_login(client, "boss2")
     assert client.put(f"/api/users/{me}/role", headers=h2, json={"role_id": agent}).status_code == 200
     # boss2 is now the last active super admin: a delegate with users.manage cannot deactivate it
+    # (tâche 39: nobody below a super admin touches a super admin account at all)
     delegate = new_user(client, h2, "delegate", "super_user")
     client.put(f"/api/users/{delegate}/overrides", headers=h2, json={"permission": "users.manage", "effect": "allow"})
     hd = first_login(client, "delegate")
     response = client.patch(f"/api/users/{other}/active", headers=hd, json={"is_active": False})
-    assert response.status_code == 409
+    assert response.status_code == 403 and "Seul un super admin" in response.json()["detail"]
 
 
 def test_override_gives_and_takes_rights_immediately(client, admin):

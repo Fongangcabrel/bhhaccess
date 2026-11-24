@@ -17,10 +17,11 @@ EN: dict[str, str] = {
     "Ce poste n'est pas dans le périmètre de ce téléphone": "This post is not in this phone's perimeter",
     "Point de contrôle introuvable": "Checkpoint not found",
     "Ce poste est désactivé : choisissez un autre poste": "This post is deactivated: choose another post",
-    "Aucun badge actif pour ce matricule": "No active badge for this employee number",
     "Authentification requise": "Authentication required",
     # --- back-office --------------------------------------------------------------------
     "Agent introuvable": "Agent not found",
+    "Seul un super admin peut modifier le compte d'un super admin":
+        "Only a super admin can change a super admin's account",
     "Session expirée : reconnectez-vous": "Session expired: log in again",
     "Réglage inconnu": "Unknown setting",
     "Valeur hors limites": "Value out of range",

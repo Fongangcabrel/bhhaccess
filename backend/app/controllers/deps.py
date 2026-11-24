@@ -124,6 +124,7 @@ def get_scan_service(session: Session = Depends(get_session), signer: TokenSigne
         signer=signer, engine=engine, clock=clock, timezone=request.app.state.timezone,
         alerts=AlertService(session, None, clock,
                             SettingsService(session, request.app.state.setting_defaults, clock).alert_rules()),
+        manual_limiter=getattr(request.app.state, "manual_limiter", None),
     )
 
 

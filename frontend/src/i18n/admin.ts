@@ -706,4 +706,6 @@ export const ADMIN_EN: Record<string, string> = {
   "Sessions": "Sessions",
   "Temps de trajet par défaut entre deux unités": "Default travel time between two units",
   "Valeur d'installation : {0} {1}": "Installation value: {0} {1}",
+  // --- Comptes super admin (tâche 39)
+  "Réservé aux super admins": "Reserved to super admins",
 };

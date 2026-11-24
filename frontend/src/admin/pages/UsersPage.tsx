@@ -34,6 +34,10 @@ function Accounts() {
   const [resetting, setResetting] = useState<UserRow | null>(null);
   const act = useAction(setError);
   const roleName = (id: number) => roles.data?.find((r) => r.id === id)?.label ?? "–";
+  // A super admin account is only handled by a super admin (the server refuses it otherwise).
+  const reserved = (u: UserRow) => roles.data?.find((r) => r.id === u.role_id)?.name === "super_admin"
+    && me?.role !== "super_admin";
+  const editable = (u: UserRow) => u.id !== me?.id && !reserved(u);
 
   return (
     <>
@@ -56,9 +60,10 @@ function Accounts() {
                   {u.must_change_password && <span className="pill">{tx("Mot de passe temporaire")}</span>}
                 </td>
                 <td className="right">
-                  {u.id !== me?.id && can("roles.assign") && <button className="small" onClick={() => setEditing(u)}>{tx("Droits")}</button>}{" "}
-                  {u.id !== me?.id && <button className="small" onClick={() => setResetting(u)}>{tx("Mot de passe")}</button>}{" "}
-                  {u.id !== me?.id && (
+                  {reserved(u) && <span className="muted">{tx("Réservé aux super admins")}</span>}
+                  {editable(u) && can("roles.assign") && <button className="small" onClick={() => setEditing(u)}>{tx("Droits")}</button>}{" "}
+                  {editable(u) && <button className="small" onClick={() => setResetting(u)}>{tx("Mot de passe")}</button>}{" "}
+                  {editable(u) && (
                     <button className="small" onClick={() => act(() => admin.setUserActive(u.id, !u.is_active), () => void users.reload())}>
                       {u.is_active ? tx("Désactiver") : tx("Réactiver")}
                     </button>
