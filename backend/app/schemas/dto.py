@@ -133,7 +133,7 @@ class ArchiveIn(BaseModel):
 # --- badges -----------------------------------------------------------------
 class BadgeIssueIn(BaseModel):
     employee_id: int
-    expires_at: datetime | None = None
+    expires_at: AwareDatetime | None = None
 
 
 class BadgeRevokeIn(BaseModel):
@@ -282,7 +282,7 @@ class AccessIn(BaseModel):
 class AuthorizationIn(BaseModel):
     employee_id: int
     zone_id: int
-    valid_until: datetime | None = None
+    valid_until: AwareDatetime | None = None
 
 
 class AuthorizationOut(_Out):

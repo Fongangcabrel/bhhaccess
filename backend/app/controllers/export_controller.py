@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, Request, Response
+from pydantic import AwareDatetime
 
 from app.controllers.deps import (
     get_audit,
@@ -144,7 +145,7 @@ def export_journal(
     employee_id: int | None = None, department_id: int | None = None, entity_id: int | None = None,
     zone_id: int | None = None, unit_id: int | None = None, agent_id: int | None = None,
     checkpoint_id: int | None = None, verdict: Verdict | None = None, direction: Direction | None = None,
-    date_from: datetime | None = None, date_to: datetime | None = None,
+    date_from: AwareDatetime | None = None, date_to: AwareDatetime | None = None,
     flag: Flag | None = None, method: ScanMethod | None = None,
     log_ids: list[int] | None = Query(None),
     actor: User = Depends(require_all(Permission.LOGS_VIEW, Permission.DATA_EXPORT)),

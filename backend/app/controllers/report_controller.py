@@ -2,9 +2,9 @@
 
 Reading needs reports.view; Excel / PDF also need data.export and are written in the audit.
 """
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request, Response
+from pydantic import AwareDatetime
 
 from app.controllers.deps import get_audit, get_period_report_service, get_session, require, require_all
 from app.controllers.export_controller import Format, _exporter, _send, describe_journal_filters
@@ -62,7 +62,7 @@ TREND_COLUMNS = [
 
 
 def report_filters(
-    date_from: datetime | None = None, date_to: datetime | None = None,
+    date_from: AwareDatetime | None = None, date_to: AwareDatetime | None = None,
     employee_id: int | None = None, department_id: int | None = None, entity_id: int | None = None,
     unit_id: int | None = None, zone_id: int | None = None,
 ) -> ReportFilters:

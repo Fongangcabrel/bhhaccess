@@ -140,15 +140,11 @@ class PeriodReportService:
         self._tz = ZoneInfo(timezone)
 
     def normalize(self, filters: ReportFilters) -> ReportFilters:
-        """A date without time zone is read as site local time (never a 500)."""
-        def aware(value: datetime | None) -> datetime | None:
-            return value.replace(tzinfo=self._tz) if value is not None and value.tzinfo is None else value
-
-        start, end = aware(filters.date_from), aware(filters.date_to)
+        """Dates come with their time zone (the API refuses others with a 422); the period must be in order."""
+        start, end = filters.date_from, filters.date_to
         if start is not None and end is not None and start > end:
             raise DomainError("La date de début doit précéder la date de fin")
-        return ReportFilters(start, end, filters.employee_id, filters.department_id, filters.entity_id,
-                             filters.unit_id, filters.zone_id)
+        return filters
 
     # --- FR-73 -------------------------------------------------------------------
     def movements(self, filters: ReportFilters) -> MovementReport:

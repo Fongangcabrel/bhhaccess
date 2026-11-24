@@ -167,13 +167,19 @@ class ZoneService:
         """The warning option only exists in « Signalé » (SOUPLE): it is cleared in the other modes."""
         zone = self._require_zone(zone_id)
         before = {"mode": zone.antipassback_mode.value, "warn_agent": zone.antipassback_warn_agent}
+        # « Libre » does not follow exits: the presences kept so far would go stale and, back in
+        # « Sortie obligatoire », refuse people who left in between. They are forgotten (and counted).
+        cleared = 0
+        if mode == AntiPassbackMode.DISABLED and zone.antipassback_mode != AntiPassbackMode.DISABLED:
+            cleared = self._presences.clear_zone(zone.id)
         zone.antipassback_mode = mode
         if warn_agent is not None:
             zone.antipassback_warn_agent = warn_agent
         if mode != AntiPassbackMode.SOFT:
             zone.antipassback_warn_agent = False
+        extra = {"presences_cleared": cleared} if cleared else {}
         self._audit.record(actor_id, "zone.antipassback", zone.name, before=before,
-                           after={"mode": mode.value, "warn_agent": zone.antipassback_warn_agent})
+                           after={"mode": mode.value, "warn_agent": zone.antipassback_warn_agent}, **extra)
         return zone
 
     def list_zones(self) -> list[Zone]:

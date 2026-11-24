@@ -1,6 +1,6 @@
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request
+from pydantic import AwareDatetime
 
 from app.controllers.deps import get_audit, get_journal_service, get_session, require
 from app.domain.enums import Direction, Flag, ScanMethod, Verdict
@@ -19,7 +19,7 @@ def search_logs(
     zone_id: int | None = None, unit_id: int | None = None, agent_id: int | None = None,
     checkpoint_id: int | None = None,
     verdict: Verdict | None = None, direction: Direction | None = None,
-    date_from: datetime | None = None, date_to: datetime | None = None,
+    date_from: AwareDatetime | None = None, date_to: AwareDatetime | None = None,
     flag: Flag | None = None, method: ScanMethod | None = None,
     limit: int = Query(100, le=500), offset: int = 0,
     _: User = Depends(require(Permission.LOGS_VIEW)),
@@ -52,7 +52,7 @@ def audit_filters(
     actor_id: int | None = None,
     system: bool = Query(False, description="Seulement les actions sans auteur connecté (téléphones)"),
     target: str | None = Query(None, max_length=120, description="Objet contenant ce texte"),
-    date_from: datetime | None = None, date_to: datetime | None = None,
+    date_from: AwareDatetime | None = None, date_to: AwareDatetime | None = None,
 ) -> AuditFilters:
     return AuditFilters(action=action or None, actor_id=actor_id, system_only=system, target=target,
                         date_from=date_from, date_to=date_to)

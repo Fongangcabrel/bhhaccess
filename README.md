@@ -65,7 +65,7 @@ models/        M  Tables SQLAlchemy        schemas/  V  Contrats JSON (Pydantic)
 ```bash
 cd backend
 pip install -e ".[dev]"
-pytest                                          # 238 tests (SQLite en mémoire)
+pytest                                          # 249 tests (SQLite en mémoire)
 # même suite sur un vrai PostgreSQL (schéma via Alembic) :
 BHH_TEST_DATABASE_URL=postgresql+psycopg2://user@host/db pytest   # + la course concurrente
 alembic upgrade head                            # base existante : appliquer les migrations (0001 à 0017)

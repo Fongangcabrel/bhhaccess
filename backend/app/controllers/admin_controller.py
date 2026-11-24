@@ -1,7 +1,7 @@
 """Read endpoints that feed the back-office screens."""
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Response
+from pydantic import AwareDatetime
 
 from app.controllers.deps import (
     get_audit,
@@ -84,7 +84,7 @@ def export_logs(
     zone_id: int | None = None, unit_id: int | None = None, agent_id: int | None = None,
     checkpoint_id: int | None = None,
     verdict: Verdict | None = None, direction: Direction | None = None,
-    date_from: datetime | None = None, date_to: datetime | None = None,
+    date_from: AwareDatetime | None = None, date_to: AwareDatetime | None = None,
     flag: Flag | None = None, method: ScanMethod | None = None,
     limit: int = Query(20000, le=50000),
     actor: User = Depends(require_all(Permission.LOGS_VIEW, Permission.DATA_EXPORT)),

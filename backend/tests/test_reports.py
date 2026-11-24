@@ -56,9 +56,11 @@ def test_movements_per_employee_and_zone(client, agent, admin, world, clock):
 
     only_prod = client.get(f"/api/reports/movements?department_id={people['prod']['id']}", headers=admin).json()
     assert [r["matricule"] for r in only_prod["rows"]] == ["EMP-0042"]
-    first_day = client.get("/api/reports/movements", headers=admin,
-                           params={"date_from": "2026-11-11T00:00:00", "date_to": "2026-11-11T23:59:59"}).json()
-    assert first_day["entries"] == 1  # a date without time zone is read as Douala time, not a 500
+    first_day = client.get("/api/reports/movements", headers=admin, params={
+        "date_from": "2026-11-11T00:00:00+01:00", "date_to": "2026-11-11T23:59:59+01:00"}).json()
+    assert first_day["entries"] == 1
+    naive = client.get("/api/reports/movements", headers=admin, params={"date_from": "2026-11-11T00:00:00"})
+    assert naive.status_code == 422  # a date must carry its time zone (tâche 40), never a 500
 
 
 def test_presence_by_zone_counts_inside_now_and_people(client, agent, admin, world):
