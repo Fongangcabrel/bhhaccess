@@ -61,6 +61,8 @@ Au premier scan, autoriser l'accès à la **caméra**.
 | Pas de « Installer l'application » dans le menu | Le certificat n'est pas reconnu : vérifier l'étape 2, fermer et rouvrir Chrome. |
 | « Votre connexion n'est pas privée » sur l'application | Certificat pas installé en « Certificat CA », ou adresse IP du PC changée : demander qu'on relance `generer-certificat.ps1`. |
 | La page ne charge pas du tout | Vérifier le Wi-Fi (même réseau que le PC) et que l'application tourne sur le PC (`npm run dev:phone`). |
+| Le scan ne marche plus, aucune donnée (postes, historique) alors que tout marchait | L'adresse IP du PC a sans doute changé (comparer avec `certs/adresse.txt`) : relancer `generer-certificat.ps1` puis redémarrer `npm run dev:phone`. |
+| Écran de la caméra noir | Toucher le bouton « Touchez ici pour activer la caméra » s'il s'affiche. Sinon : fermer l'application, la rouvrir, et vérifier que Chrome a accès à la caméra (Paramètres des sites ▸ Caméra). |
 | Icône sans logo / ancienne icône | Désinstaller l'icône (appui long ▸ Désinstaller), Chrome ▸ Paramètres ▸ Paramètres des sites ▸ Toutes les données des sites : supprimer l'adresse du PC, puis refaire l'étape 3. |
 | Pas de voix | Paramètres ▸ Accessibilité ▸ Synthèse vocale : moteur Google, langue Français ; télécharger la voix si besoin. |
 

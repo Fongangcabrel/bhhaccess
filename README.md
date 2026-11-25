@@ -138,4 +138,12 @@ enregistrer de plus (`ScanService.REPEAT_WINDOW`, vérifié sous le même verrou
 
 ## Pas encore fait
 
-Voir `suivi de taches.xlsx` (tâches 36 et suivantes) · mode hors ligne (phase 3) · durcissement (verrouillage des connexions, HTTPS Nginx).
+Tâches 1 à 45 de `suivi de taches.xlsx` terminées. Restent, à faire au moment de l'hébergement :
+46 (verrouillage d'un compte après 5 échecs, limite de débit sur connexion et scan), 47 (limiteur
+d'appairage derrière Nginx), 48 (HTTPS + HSTS, refus de démarrer avec les secrets par défaut),
+puis premier lancement des images Docker et des migrations 0016 à 0018 sur le vrai PostgreSQL.
+Plus tard : mode hors ligne (phase 3).
+
+Téléphones en essai : si le scan ne marche plus ou que l'application n'affiche plus de données,
+vérifier d'abord le certificat HTTPS (adresse du PC changée) : voir `config/pwa/README.md`.
+Caméra noire sur iPhone : corrigée (attributs vidéo pour Safari, bouton « Touchez ici pour activer la caméra »).

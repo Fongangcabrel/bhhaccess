@@ -51,8 +51,10 @@ Ensuite, on appaire le téléphone comme d'habitude : back-office ▸ Paramétra
 
 ## Si l'adresse IP du PC change
 
-Le Wi-Fi peut donner une autre adresse au PC. Relancer `generer-certificat.ps1`, puis redémarrer
-`npm run dev:phone`. Les téléphones **n'ont rien à refaire** : leur certificat reste valable.
+Le Wi-Fi peut donner une autre adresse au PC. Signe typique : le téléphone ne scanne plus, la caméra
+reste noire ou l'application n'affiche plus aucune donnée, alors que la base est intacte. Comparer
+`certs/adresse.txt` avec l'adresse actuelle du PC (`ipconfig`). Relancer `generer-certificat.ps1`, puis redémarrer
+`npm run dev:phone` (Vite ne lit le certificat qu'au démarrage). Les téléphones **n'ont rien à refaire** : leur certificat reste valable.
 Ils devront simplement ouvrir la nouvelle adresse et réinstaller l'icône.
 Pour éviter cela, on peut fixer l'adresse du PC dans la box ou le routeur (réservation DHCP).
 

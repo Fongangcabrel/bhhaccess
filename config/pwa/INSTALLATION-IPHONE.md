@@ -47,6 +47,8 @@ Au premier scan, autoriser l'accès à la **caméra**.
 | Une icône « B » au lieu du logo                        | Le certificat n'est pas installé ou pas activé (étapes 1 et 2). Supprimer l'icône, puis refaire l'étape 3.              |
 | « Cette connexion n'est pas privée » sur l'application | L'étape 2 (confiance) n'est pas faite, ou l'adresse IP du PC a changé : demander qu'on relance `generer-certificat.ps1`. |
 | La page ne charge pas du tout                             | Vérifier le Wi-Fi (même réseau que le PC) et que l'application tourne sur le PC (`npm run dev:phone`).                  |
+| Le scan ne marche plus, aucune donnée (postes, historique) alors que tout marchait | L'adresse IP du PC a sans doute changé (comparer avec `certs/adresse.txt`) : relancer `generer-certificat.ps1` puis redémarrer `npm run dev:phone`. Utiliser de préférence `https://nom-du-pc.local:5173`, qui suit le PC. |
+| Écran de la caméra noir                                   | Toucher le bouton « Touchez ici pour activer la caméra » s'il s'affiche. Sinon : fermer l'application (balayer vers le haut), la rouvrir, et vérifier l'accès à la caméra (Réglages ▸ Safari ▸ Caméra). |
 | L'application installée reste blanche                    | Réglages ▸ Safari ▸ Avancé ▸ Données de sites web : supprimer l'adresse du PC, puis refaire l'étape 3.                |
 | Pas de son ni de voix                                     | Toucher une fois l'écran après l'ouverture (iOS bloque le son avant). Vérifier que le bouton silencieux est désactivé.  |
 | La voix ne parle pas français                            | Réglages ▸ Accessibilité ▸ Contenu énoncé ▸ Voix ▸ Français : télécharger une voix.                               |
